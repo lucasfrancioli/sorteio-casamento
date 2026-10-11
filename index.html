@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sorteio do Casamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wine: #4a1424;
+    --wine-deep: #2e0c17;
+    --wine-mid: #6e2238;
+    --gold: #c9a15c;
+    --gold-bright: #e4c585;
+    --cream: #f7efe1;
+    --cream-dim: #e9ddc6;
+    --ink: #2a1015;
+    --ok: #4a7c59;
+    --danger: #b64a4a;
+    --radius: 14px;
+    --serif: 'Fraunces', serif;
+    --sans: 'Work Sans', sans-serif;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--wine-deep);
+    color: var(--cream);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 24px);
+  }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 20px 48px;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    background:
+      radial-gradient(120% 90% at 20% -10%, var(--wine-mid) 0%, transparent 55%),
+      linear-gradient(180deg, var(--wine) 0%, var(--wine-deep) 100%);
+    padding: 40px 20px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tie-mark {
+    width: 34px;
+    height: 54px;
+    margin: 0 auto 18px;
+    opacity: 0.9;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 7vw, 2.5rem);
+    line-height: 1.08;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .hero .event-name {
+    color: var(--gold-bright);
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .hero p.sub {
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--cream-dim);
+    max-width: 38ch;
+    margin: 0 auto;
+  }
+
+  /* ---------- Sections ---------- */
+  section { padding-top: 28px; }
+
+  .card {
+    background: rgba(247, 239, 225, 0.05);
+    border: 1px solid rgba(201, 161, 92, 0.25);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+
+  .prize-card {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .prize-card .label {
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .prize-card .name {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  h2.section-title {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  p.section-hint {
+    color: var(--cream-dim);
+    font-size: 0.9rem;
+    margin: 0 0 16px;
+    line-height: 1.45;
+  }
+
+  /* ---------- Pricing tiers ---------- */
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .tier {
+    background: rgba(201, 161, 92, 0.08);
+    border: 1px solid rgba(201, 161, 92, 0.3);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+
+  .tier .qty {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    font-family: var(--serif);
+  }
+
+  .tier .qty-label {
+    font-size: 0.68rem;
+    color: var(--cream-dim);
+    display: block;
+    margin-top: -2px;
+  }
+
+  .tier .price {
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  /* ---------- Number grid ---------- */
+  .grid-controls {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .grid-controls .count {
+    font-weight: 600;
+    color: var(--gold-bright);
+  }
+
+  .num-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+
+  .num {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.85rem;
+    background: rgba(247, 239, 225, 0.06);
+    border: 1px solid rgba(247, 239, 225, 0.15);
+    color: var(--cream);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.08s ease;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .num:active { transform: scale(0.92); }
+
+  .num.taken {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: transparent;
+    color: rgba(247, 239, 225, 0.3);
+    cursor: not-allowed;
+  }
+
+  .num.selected {
+    background: var(--gold);
+    border-color: var(--gold-bright);
+    color: var(--ink);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--cream-dim);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend .i-free { background: rgba(247, 239, 225, 0.2); }
+  .legend .i-taken { background: rgba(0,0,0,0.4); }
+  .legend .i-sel { background: var(--gold); }
+
+  /* ---------- Checkout ---------- */
+  .checkout {
+    position: sticky;
+    bottom: 12px;
+    margin-top: 20px;
+  }
+
+  .checkout-bar {
+    background: var(--ink);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .checkout-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+
+  .checkout-total .amt {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: rgba(247, 239, 225, 0.08);
+    border: 1px solid rgba(247, 239, 225, 0.25);
+    border-radius: 9px;
+    padding: 11px 12px;
+    color: var(--cream);
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+  }
+  input[type="text"]::placeholder { color: rgba(247,239,225,0.4); }
+  input[type="text"]:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+  button {
+    font-family: var(--sans);
+    font-weight: 600;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 0.98rem;
+  }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary:not(:disabled):active { background: var(--gold-bright); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--cream-dim);
+    text-decoration: underline;
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  .error-msg {
+    color: #ffb4b4;
+    font-size: 0.85rem;
+    margin-top: -4px;
+    margin-bottom: 10px;
+  }
+
+  /* ---------- Confirmation / Pix ---------- */
+  .confirm-card { text-align: center; }
+  .confirm-card .check {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--ok);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 14px;
+    font-size: 1.4rem;
+  }
+  .confirm-numbers {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 14px 0;
+  }
+  .confirm-numbers .n {
+    background: var(--gold);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 1.1rem;
+    width: 42px; height: 42px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pix-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .pix-box img, .pix-box canvas { display: block; margin: 0 auto; }
+  .pix-copy {
+    margin-top: 10px;
+    word-break: break-all;
+    font-size: 0.7rem;
+    color: #333;
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: left;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 36px;
+    font-size: 0.78rem;
+    color: rgba(247,239,225,0.4);
+  }
+  footer a { color: var(--gold); }
+
+  [hidden] { display: none !important; }
+
+  /* ---------- Admin ---------- */
+  body.admin { background: #1b1b1f; }
+  .admin .wrap { max-width: 560px; }
+  .admin-header {
+    padding: 24px 0 8px;
+  }
+  .admin-header h1 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    margin: 0;
+  }
+  .admin label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--cream-dim);
+    margin: 14px 0 6px;
+  }
+  .admin textarea, .admin input[type="text"], .admin input[type="number"] {
+    width: 100%;
+    background: rgba(247, 239, 225, 0.08);
+    border: 1px solid rgba(247, 239, 225, 0.25);
+    border-radius: 9px;
+    padding: 10px 12px;
+    color: var(--cream);
+    font-family: var(--sans);
+    font-size: 0.92rem;
+  }
+  .admin textarea { min-height: 70px; resize: vertical; }
+  .tier-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(247,239,225,0.1);
+    font-size: 0.9rem;
+  }
+  .stat-row .v { font-weight: 700; color: var(--gold-bright); }
+  .reservation-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(247,239,225,0.08);
+    font-size: 0.85rem;
+  }
+  .winner-banner {
+    background: var(--gold);
+    color: var(--ink);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    margin-top: 16px;
+  }
+  .winner-banner .winner-num {
+    font-family: var(--serif);
+    font-size: 2.2rem;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div id="app" class="wrap">Carregando…</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="pix.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
