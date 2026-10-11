@@ -62,6 +62,19 @@ async function loadReservations() {
   return data;
 }
 
+// Pedido do usuario (2026-10-11): mostrar o NOME de quem ganhou, nao so o
+// numero -- numero e nome ja ficam ligados via raffle_numbers.reservation_id,
+// so precisava expor essa ligacao na tela do sorteio.
+async function loadWinnerGuestName(winnerNumber) {
+  const { data, error } = await sb
+    .from("raffle_numbers")
+    .select("reservations(guest_name)")
+    .eq("number", winnerNumber)
+    .single();
+  if (error || !data?.reservations) return null;
+  return data.reservations.guest_name;
+}
+
 // ===========================================================================
 // VISAO DO CONVIDADO
 // ===========================================================================
@@ -361,8 +374,9 @@ function paintConfirmation() {
   }
 }
 
-function paintWinnerScreen() {
+async function paintWinnerScreen() {
   const { config } = guestState;
+  const guestName = await loadWinnerGuestName(config.winner_number);
   app.innerHTML = `
     <div class="hero">
       <h1>🎉 Temos um vencedor!</h1>
@@ -371,6 +385,7 @@ function paintWinnerScreen() {
       <div class="winner-banner">
         <p style="margin:0 0 6px">O número sorteado foi</p>
         <div class="winner-num">${config.winner_number}</div>
+        ${guestName ? `<p style="margin:10px 0 0;font-weight:600">${escapeHtml(guestName)}</p>` : ""}
       </div>
       <p style="text-align:center;color:var(--cream-dim);margin-top:16px">Obrigado a todos que participaram e ajudaram na nossa lua de mel! 💍</p>
     </div>
@@ -414,6 +429,16 @@ async function renderAdmin() {
   const arrecadado = reservations.reduce((sum, r) => sum + Number(r.total_price), 0);
   const tiers = config.pricing_tiers || [];
 
+  // Nome do vencedor: deriva do que ja foi carregado (numero -> reservation_id
+  // -> nome), sem precisar de outra consulta -- mesma ligacao que a tela do
+  // convidado usa via loadWinnerGuestName, so que aqui os dados ja estao em mao.
+  let winnerName = null;
+  if (config.winner_number) {
+    const winnerRow = numbers.find((n) => n.number === config.winner_number);
+    const winnerReservation = reservations.find((r) => r.id === winnerRow?.reservation_id);
+    winnerName = winnerReservation?.guest_name || null;
+  }
+
   app.innerHTML = `
     <div class="admin-header">
       <h1>Painel do organizador</h1>
@@ -427,7 +452,9 @@ async function renderAdmin() {
 
     ${
       config.winner_number
-        ? `<div class="winner-banner"><p style="margin:0 0 6px">Vencedor sorteado</p><div class="winner-num">${config.winner_number}</div></div>`
+        ? `<div class="winner-banner"><p style="margin:0 0 6px">Vencedor sorteado</p><div class="winner-num">${config.winner_number}</div>${
+            winnerName ? `<p style="margin:10px 0 0;font-weight:600">${escapeHtml(winnerName)}</p>` : ""
+          }</div>`
         : `<button class="btn-primary" id="draw-btn" ${taken === 0 ? "disabled" : ""}>Sortear agora</button>`
     }
 
