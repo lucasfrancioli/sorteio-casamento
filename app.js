@@ -64,9 +64,21 @@ async function loadRaffles() {
 async function loadNumbers(raffleId) {
   const { data, error } = await sb
     .from("raffle_numbers")
-    .select("number, reservation_id")
+    .select("number, reservation_id, reservations(guest_name)")
     .eq("raffle_id", raffleId)
     .order("number");
+  if (error) throw error;
+  return data;
+}
+
+async function loadRaffleItems(raffleId) {
+  const { data, error } = await sb.from("raffle_items").select("*").eq("raffle_id", raffleId).order("position");
+  if (error) throw error;
+  return data;
+}
+
+async function loadAllRaffleItems() {
+  const { data, error } = await sb.from("raffle_items").select("*").order("position");
   if (error) throw error;
   return data;
 }
@@ -104,6 +116,7 @@ function formatEventDate(dateStr) {
 let guestState = {
   settings: null,
   raffles: [],
+  allItems: [],
   numbers: [],
   selectedTier: null,
   selected: new Set(),
@@ -116,9 +129,10 @@ let guestState = {
 async function renderGuest() {
   app.innerHTML = `<p style="padding-top:60px;text-align:center;color:var(--pewter)">Carregando…</p>`;
   try {
-    const [settings, raffles] = await Promise.all([loadSiteSettings(), loadRaffles()]);
+    const [settings, raffles, allItems] = await Promise.all([loadSiteSettings(), loadRaffles(), loadAllRaffleItems()]);
     guestState.settings = settings;
     guestState.raffles = raffles;
+    guestState.allItems = allItems;
     const active = raffles.find((r) => r.status === "active");
     guestState.numbers = active ? await loadNumbers(active.id) : [];
   } catch (err) {
@@ -130,8 +144,13 @@ async function renderGuest() {
   subscribeRealtime();
 }
 
+function itemsForRaffle(raffleId) {
+  return (guestState.allItems || []).filter((i) => i.raffle_id === raffleId).sort((a, b) => a.position - b.position);
+}
+
 let rafflesChannel = null;
 let numbersChannel = null;
+let itemsChannel = null;
 function subscribeRealtime() {
   if (!rafflesChannel) {
     rafflesChannel = sb
@@ -154,6 +173,15 @@ function subscribeRealtime() {
         const active = guestState.raffles.find((r) => r.status === "active");
         if (!active) return;
         guestState.numbers = await loadNumbers(active.id);
+        if (!location.hash.startsWith("#admin")) paintGuest();
+      })
+      .subscribe();
+  }
+  if (!itemsChannel) {
+    itemsChannel = sb
+      .channel("raffle_items_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "raffle_items" }, async () => {
+        guestState.allItems = await loadAllRaffleItems();
         if (!location.hash.startsWith("#admin")) paintGuest();
       })
       .subscribe();
@@ -190,11 +218,31 @@ function heroHtml() {
   `;
 }
 
+function howToHtml() {
+  return `
+    <div class="section howto">
+      <div class="howto-row">
+        <span class="howto-num">1</span>
+        <p class="howto-text"><b>Escolha um pacote</b> e os números da sorte que você quer.</p>
+      </div>
+      <div class="howto-row">
+        <span class="howto-num">2</span>
+        <p class="howto-text"><b>Pague a doação via Pix</b> com o QR Code gerado na hora, no valor exato.</p>
+      </div>
+      <div class="howto-row">
+        <span class="howto-num">3</span>
+        <p class="howto-text"><b>Guarde a tela.</b> No sorteio ao vivo, seu nome e número aparecem se você ganhar.</p>
+      </div>
+    </div>
+  `;
+}
+
 function paintWaitingOrWinner() {
   const { raffles } = guestState;
   const drawn = raffles.filter((r) => r.status === "drawn").sort((a, b) => new Date(b.drawn_at) - new Date(a.drawn_at));
   const upcoming = raffles.filter((r) => r.status === "draft").sort((a, b) => a.position - b.position);
   const lastWinner = drawn[0];
+  const lastWinnerItems = lastWinner ? itemsForRaffle(lastWinner.id) : [];
 
   app.innerHTML = `
     ${heroHtml()}
@@ -202,8 +250,15 @@ function paintWaitingOrWinner() {
       ${
         lastWinner
           ? `<div class="winner-banner" id="winner-banner">
-               <p style="margin:0 0 6px">${escapeHtml(lastWinner.prize_description)} -- número sorteado</p>
-               <div class="winner-num">${lastWinner.winner_number}</div>
+               ${lastWinnerItems
+                 .map(
+                   (it) => `
+                 <div style="margin-bottom:14px" data-item-id="${it.id}">
+                   <p style="margin:0 0 6px">${escapeHtml(it.description)} -- número sorteado</p>
+                   <div class="winner-num">${String(it.winner_number).padStart(2, "0")}</div>
+                 </div>`
+                 )
+                 .join("")}
              </div>`
           : `<p style="text-align:center;color:var(--pewter);margin-top:30px">Nenhum sorteio aberto no momento. Fica de olho!</p>`
       }
@@ -213,32 +268,34 @@ function paintWaitingOrWinner() {
                <h3 class="grid-head" style="font-family:var(--body);font-weight:600;font-size:0.9rem;margin-bottom:4px">A seguir</h3>
                <div class="upcoming-list">
                  ${upcoming
-                   .map(
-                     (r, i) =>
-                       `<div class="upcoming-row"><span class="ord">${i + 1}.</span><span class="name">${escapeHtml(r.prize_description)}</span></div>`
-                   )
+                   .map((r, i) => {
+                     const label = itemsForRaffle(r.id).map((it) => it.description).join(", ") || "a definir";
+                     return `<div class="upcoming-row"><span class="ord">${i + 1}.</span><span class="name">${escapeHtml(label)}</span></div>`;
+                   })
                    .join("")}
                </div>
              </div>`
           : ""
       }
+      ${howToHtml()}
       <footer class="foot">gravata digital · <a href="#admin">organizador</a></footer>
     </div>
   `;
 
-  if (lastWinner) {
-    loadWinnerGuestName(lastWinner.id, lastWinner.winner_number).then((name) => {
+  lastWinnerItems.forEach((it) => {
+    loadWinnerGuestName(lastWinner.id, it.winner_number).then((name) => {
       if (!name) return;
-      const banner = document.getElementById("winner-banner");
-      if (banner) banner.insertAdjacentHTML("beforeend", `<p style="margin:10px 0 0;font-weight:600">${escapeHtml(name)}</p>`);
+      const container = document.querySelector(`#winner-banner [data-item-id="${it.id}"]`);
+      if (container) container.insertAdjacentHTML("beforeend", `<p style="margin:10px 0 0;font-weight:600">${escapeHtml(name)}</p>`);
     });
-  }
+  });
 }
 
 function paintActiveRaffle(raffle) {
   const { numbers } = guestState;
   const tiers = raffle.pricing_tiers || [];
   const takenCount = numbers.filter((n) => n.reservation_id).length;
+  const items = itemsForRaffle(raffle.id);
 
   app.innerHTML = `
     ${heroHtml()}
@@ -246,10 +303,27 @@ function paintActiveRaffle(raffle) {
       <div class="status-row" style="margin-top:0"><span class="dot live"></span><span>sorteio ao vivo agora</span></div>
 
       <div class="prize satin-edge" style="padding-top:18px">
-        <h2>${escapeHtml(raffle.prize_description)}</h2>
-        ${raffle.prize_image_url ? `<img src="${escapeHtml(raffle.prize_image_url)}" alt="" />` : ""}
+        <div class="items-list">
+          ${items
+            .map((it) => {
+              const drawn = Boolean(it.winner_number);
+              return `
+              <div class="item-card">
+                ${it.image_url ? `<img src="${escapeHtml(it.image_url)}" alt="" />` : ""}
+                <div class="item-body">
+                  <p class="item-desc">${escapeHtml(it.description)}</p>
+                  <p class="item-status ${drawn ? "won" : ""}" data-item-id="${it.id}">
+                    ${drawn ? `já sorteado — número <span class="winner-num-inline">${String(it.winner_number).padStart(2, "0")}</span>` : "ainda não sorteado"}
+                  </p>
+                </div>
+              </div>`;
+            })
+            .join("")}
+        </div>
         <div class="tiers" id="tiers" style="margin-top:18px"></div>
       </div>
+
+      ${howToHtml()}
 
       <div class="section satin-edge" id="grid-section" ${guestState.selectedTier ? "" : "hidden"}>
         <div class="grid-head">
@@ -280,6 +354,16 @@ function paintActiveRaffle(raffle) {
     </div>
   `;
 
+  items
+    .filter((it) => it.winner_number)
+    .forEach((it) => {
+      loadWinnerGuestName(raffle.id, it.winner_number).then((name) => {
+        if (!name) return;
+        const el = app.querySelector(`.item-status[data-item-id="${it.id}"]`);
+        if (el) el.insertAdjacentHTML("beforeend", ` · ${escapeHtml(name)}`);
+      });
+    });
+
   const tiersEl = document.getElementById("tiers");
   tiersEl.innerHTML = tiers
     .map(
@@ -308,7 +392,11 @@ function paintActiveRaffle(raffle) {
       const taken = Boolean(n.reservation_id);
       const selected = guestState.selected.has(n.number);
       const cls = taken ? "taken" : selected ? "selected" : "";
-      return `<button type="button" class="num ${cls}" data-n="${n.number}" ${taken ? "disabled" : ""}>${String(n.number).padStart(2, "0")}</button>`;
+      const firstName = taken ? (n.reservations?.guest_name || "").trim().split(" ")[0] : "";
+      return `<button type="button" class="num ${cls}" data-n="${n.number}" ${taken ? "disabled" : ""}>
+        <span class="n-num">${String(n.number).padStart(2, "0")}</span>
+        ${taken && firstName ? `<span class="n-name">${escapeHtml(firstName)}</span>` : ""}
+      </button>`;
     })
     .join("");
 
@@ -369,7 +457,8 @@ async function submitClaim(raffle) {
     return;
   }
 
-  guestState.result = { raffleId: raffle.id, prize: raffle.prize_description, numbers: numbersArr, total, reservationId: data, guestName: name };
+  const prizeLabel = itemsForRaffle(raffle.id).map((it) => it.description).join(" · ") || "Gravata Digital";
+  guestState.result = { raffleId: raffle.id, prize: prizeLabel, numbers: numbersArr, total, reservationId: data, guestName: name };
   paintGuest();
 }
 
@@ -456,9 +545,9 @@ async function renderAdmin() {
   }
 
   app.innerHTML = `<p style="padding-top:40px;text-align:center;color:var(--pewter)">Carregando…</p>`;
-  let settings, raffles;
+  let settings, raffles, allItems;
   try {
-    [settings, raffles] = await Promise.all([loadSiteSettings(), loadRaffles()]);
+    [settings, raffles, allItems] = await Promise.all([loadSiteSettings(), loadRaffles(), loadAllRaffleItems()]);
   } catch (err) {
     app.innerHTML = `<p style="padding-top:40px;text-align:center;color:#e59a9a">Erro ao carregar.</p>`;
     console.error(err);
@@ -535,17 +624,24 @@ async function renderAdmin() {
       .map((r) => {
         const badgeClass = r.status === "active" ? "active" : r.status === "drawn" ? "drawn" : "";
         const badgeText = r.status === "active" ? "ao vivo" : r.status === "drawn" ? "encerrado" : "agendado";
+        const items = allItems.filter((i) => i.raffle_id === r.id).sort((a, b) => a.position - b.position);
+        const titleLabel = items.map((i) => i.description).join(" · ") || "(sem itens)";
+        const itemsSummary = items
+          .map(
+            (i) =>
+              `<div style="font-size:0.78rem;color:var(--pewter);padding:2px 0">${escapeHtml(i.description)}${i.winner_number ? ` — número ${String(i.winner_number).padStart(2, "0")}` : ""}</div>`
+          )
+          .join("");
         return `
           <div class="raffle-card" data-id="${r.id}">
             <div class="top">
-              <h3>${escapeHtml(r.prize_description)}</h3>
+              <h3>${escapeHtml(titleLabel)}</h3>
               <span class="raffle-badge ${badgeClass}">${badgeText}</span>
             </div>
+            ${itemsSummary}
             <div class="raffle-actions">
               <button type="button" class="btn-small-outline edit-raffle">editar</button>
               ${r.status === "draft" ? `<button type="button" class="btn-small-primary activate-raffle">ativar</button>` : ""}
-              ${r.status === "active" ? `<button type="button" class="btn-small-primary draw-raffle">sortear</button>` : ""}
-              ${r.status === "drawn" ? `<span style="color:var(--pewter);font-size:0.82rem;align-self:center">número ${r.winner_number}</span>` : ""}
             </div>
           </div>
         `;
@@ -566,15 +662,6 @@ async function renderAdmin() {
         renderAdmin();
       });
     });
-    listEl.querySelectorAll(".draw-raffle").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("Sortear agora? Isso não pode ser desfeito.")) return;
-        const id = btn.closest(".raffle-card").dataset.id;
-        const { error } = await sb.rpc("admin_draw_winner", { p_admin_key: adminKey, p_raffle_id: id });
-        if (error) { alert("Erro: " + error.message); return; }
-        renderAdmin();
-      });
-    });
   }
 }
 
@@ -587,9 +674,9 @@ async function renderRaffleEditor(settings, raffles, id) {
     return;
   }
 
-  const [reservations, numbers] = !isNew
-    ? await Promise.all([loadReservations(raffle.id), loadNumbers(raffle.id)])
-    : [[], []];
+  const [reservations, numbers, items] = !isNew
+    ? await Promise.all([loadReservations(raffle.id), loadNumbers(raffle.id), loadRaffleItems(raffle.id)])
+    : [[], [], []];
 
   const tiers = (raffle?.pricing_tiers || []).map((t) => ({ ...t }));
   const arrecadado = reservations.reduce((sum, r) => sum + Number(r.total_price), 0);
@@ -609,13 +696,9 @@ async function renderRaffleEditor(settings, raffles, id) {
         : ""
     }
 
-    <label>O que será sorteado</label>
-    <input type="text" id="r-prize" value="${escapeHtml(raffle?.prize_description || "")}" placeholder="ex: Gravata do noivo" />
-
-    <label>Imagem (opcional)</label>
-    <input type="file" id="r-image-file" accept="image/*" />
-    <input type="hidden" id="r-image-url" value="${escapeHtml(raffle?.prize_image_url || "")}" />
-    <div id="r-image-preview" style="margin-top:8px">${raffle?.prize_image_url ? `<img src="${escapeHtml(raffle.prize_image_url)}" style="max-width:100%;max-height:160px" />` : ""}</div>
+    <label>Itens a serem sorteados</label>
+    <div id="item-rows"></div>
+    <button type="button" class="btn-ghost" id="add-item">+ adicionar item</button>
 
     ${
       isNew
@@ -671,32 +754,99 @@ async function renderRaffleEditor(settings, raffles, id) {
     renderTierRows(currentTiers);
   });
 
+  let currentItems = items.length ? items.map((it) => ({ ...it })) : [{ id: null, description: "", image_url: null, winner_number: null }];
+
+  function renderItemRows(list) {
+    const el = document.getElementById("item-rows");
+    el.innerHTML = list
+      .map((it, i) => {
+        const drawn = Boolean(it.winner_number);
+        return `
+        <div class="item-edit-row" data-i="${i}">
+          <div class="item-edit-top">
+            <strong>Item ${i + 1}</strong>
+            <span class="item-edit-status ${drawn ? "won" : ""}">${drawn ? `sorteado — número ${String(it.winner_number).padStart(2, "0")}` : "ainda não sorteado"}</span>
+          </div>
+          <input type="text" class="it-desc" value="${escapeHtml(it.description || "")}" placeholder="ex: Gravata do noivo" />
+          <input type="file" class="it-image-file" accept="image/*" />
+          <div class="it-image-preview">${it.image_url ? `<img src="${escapeHtml(it.image_url)}" />` : ""}</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            ${!isNew && it.id && !drawn && raffle.status === "active" ? `<button type="button" class="btn-small-primary it-draw">sortear este item</button>` : ""}
+            ${!drawn ? `<button type="button" class="btn-ghost it-remove">remover item</button>` : ""}
+          </div>
+        </div>`;
+      })
+      .join("");
+
+    el.querySelectorAll(".it-remove").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        currentItems.splice(Number(btn.closest(".item-edit-row").dataset.i), 1);
+        if (currentItems.length === 0) currentItems.push({ id: null, description: "", image_url: null, winner_number: null });
+        renderItemRows(currentItems);
+      });
+    });
+
+    el.querySelectorAll(".it-image-file").forEach((input) => {
+      input.addEventListener("change", async (e) => {
+        const i = Number(input.closest(".item-edit-row").dataset.i);
+        const file = e.target.files[0];
+        if (!file) return;
+        const ext = file.name.split(".").pop();
+        const path = `${crypto.randomUUID()}.${ext}`;
+        const { error } = await sb.storage.from("prize-images").upload(path, file);
+        if (error) {
+          alert("Falha ao enviar imagem: " + error.message);
+          return;
+        }
+        const { data } = sb.storage.from("prize-images").getPublicUrl(path);
+        currentItems[i].image_url = data.publicUrl;
+        renderItemRows(currentItems);
+      });
+    });
+
+    el.querySelectorAll(".it-draw").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Sortear esse item agora? Isso não pode ser desfeito.")) return;
+        const i = Number(btn.closest(".item-edit-row").dataset.i);
+        const { error } = await sb.rpc("admin_draw_item_winner", {
+          p_admin_key: adminKey,
+          p_raffle_id: raffle.id,
+          p_item_id: currentItems[i].id,
+        });
+        if (error) {
+          alert("Erro: " + error.message);
+          return;
+        }
+        renderAdmin();
+      });
+    });
+  }
+
+  renderItemRows(currentItems);
+
+  document.getElementById("add-item").addEventListener("click", () => {
+    currentItems.push({ id: null, description: "", image_url: null, winner_number: null });
+    renderItemRows(currentItems);
+  });
+
   document.getElementById("back-to-list").addEventListener("click", () => {
     editingRaffleId = null;
     renderAdmin();
   });
 
-  document.getElementById("r-image-file").addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const msg = document.getElementById("raffle-msg");
-    msg.style.color = "var(--pewter)";
-    msg.textContent = "Enviando imagem…";
-    const ext = file.name.split(".").pop();
-    const path = `${crypto.randomUUID()}.${ext}`;
-    const { error } = await sb.storage.from("prize-images").upload(path, file);
-    if (error) {
-      msg.style.color = "#e59a9a";
-      msg.textContent = "Falha ao enviar imagem: " + error.message;
-      return;
-    }
-    const { data } = sb.storage.from("prize-images").getPublicUrl(path);
-    document.getElementById("r-image-url").value = data.publicUrl;
-    document.getElementById("r-image-preview").innerHTML = `<img src="${escapeHtml(data.publicUrl)}" style="max-width:100%;max-height:160px" />`;
-    msg.textContent = "Imagem enviada!";
-  });
-
   document.getElementById("save-raffle").addEventListener("click", async () => {
+    const itemRows = document.querySelectorAll(".item-edit-row");
+    const itemsPayload = Array.from(itemRows)
+      .map((row) => {
+        const i = Number(row.dataset.i);
+        return {
+          id: currentItems[i].id || null,
+          description: row.querySelector(".it-desc").value.trim(),
+          image_url: currentItems[i].image_url || null,
+        };
+      })
+      .filter((it) => it.description);
+
     const rows = document.querySelectorAll(".tier-row");
     const newTiers = Array.from(rows)
       .map((row) => ({
@@ -706,14 +856,12 @@ async function renderRaffleEditor(settings, raffles, id) {
       .filter((t) => t.quantity > 0 && t.price >= 0)
       .sort((a, b) => a.quantity - b.quantity);
 
-    const prizeDescription = document.getElementById("r-prize").value.trim();
-    const prizeImageUrl = document.getElementById("r-image-url").value.trim();
     const position = Number(document.getElementById("r-position").value) || 1;
     const msg = document.getElementById("raffle-msg");
 
-    if (!prizeDescription) {
+    if (itemsPayload.length === 0) {
       msg.style.color = "#e59a9a";
-      msg.textContent = "Descreve o que vai ser sorteado.";
+      msg.textContent = "Adicione pelo menos um item a ser sorteado.";
       return;
     }
 
@@ -722,8 +870,7 @@ async function renderRaffleEditor(settings, raffles, id) {
       const maxNumber = Number(document.getElementById("r-max-number").value) || 100;
       ({ error } = await sb.rpc("admin_create_raffle", {
         p_admin_key: adminKey,
-        p_prize_description: prizeDescription,
-        p_prize_image_url: prizeImageUrl,
+        p_items: itemsPayload,
         p_pricing_tiers: newTiers,
         p_max_number: maxNumber,
         p_position: position,
@@ -732,8 +879,7 @@ async function renderRaffleEditor(settings, raffles, id) {
       ({ error } = await sb.rpc("admin_update_raffle", {
         p_admin_key: adminKey,
         p_raffle_id: raffle.id,
-        p_prize_description: prizeDescription,
-        p_prize_image_url: prizeImageUrl,
+        p_items: itemsPayload,
         p_pricing_tiers: newTiers,
         p_position: position,
       }));

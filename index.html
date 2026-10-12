@@ -151,11 +151,11 @@
   .grid-head h3 { font-family: var(--body); font-weight: 600; font-size: 0.96rem; margin: 0; }
   .grid-head .count { font-size: 0.8rem; color: var(--pewter); font-variant-numeric: tabular-nums; }
 
-  .num-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+  .num-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
   .num {
     aspect-ratio: 1;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     border: 1px solid rgba(195, 198, 202, 0.32);
     background: rgba(246, 245, 241, 0.02);
     color: var(--white);
@@ -164,14 +164,27 @@
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
-    padding: 0;
+    padding: 4px 2px;
+    overflow: hidden;
+  }
+  .num .n-name {
+    font-family: var(--body);
+    font-weight: 500;
+    font-size: 0.5rem;
+    letter-spacing: 0.01em;
+    opacity: 0.75;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .num.taken { color: var(--smoke); border-color: rgba(110, 113, 117, 0.22); background: var(--jet); cursor: not-allowed; }
+  .num.taken .n-num { text-decoration: line-through; text-decoration-color: rgba(110, 113, 117, 0.6); }
   .num.selected { background: var(--boutonniere); border-color: var(--boutonniere); color: var(--white); box-shadow: 0 0 0 3px rgba(140, 31, 46, 0.22); }
 
   .legend { display: flex; gap: 14px; margin-bottom: 24px; font-size: 0.74rem; color: #9a9c9f; flex-wrap: wrap; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
   .legend .i-free { border: 1px solid rgba(195, 198, 202, 0.4); }
   .legend .i-taken { background: rgba(110, 113, 117, 0.45); border: 1px solid rgba(110, 113, 117, 0.55); }
   .legend .i-sel { background: var(--boutonniere); }
@@ -252,6 +265,22 @@
   .upcoming-row .ord { color: var(--pewter); font-variant-numeric: tabular-nums; }
   .upcoming-row .name { color: var(--white); }
 
+  .howto { padding: 8px 0 4px; }
+  .howto-row { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid rgba(195, 198, 202, 0.12); }
+  .howto-row:first-child { border-top: none; }
+  .howto-num { font-family: var(--display); font-style: italic; font-size: 1.15rem; color: var(--boutonniere); flex-shrink: 0; width: 20px; }
+  .howto-text { font-size: 0.86rem; line-height: 1.45; color: #b9bbbd; padding-top: 1px; }
+  .howto-text b { color: var(--white); font-weight: 600; }
+
+  .items-list { margin: 10px 0 4px; display: flex; flex-direction: column; gap: 14px; }
+  .item-card { display: flex; gap: 12px; align-items: flex-start; }
+  .item-card img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+  .item-card .item-body { flex: 1; min-width: 0; }
+  .item-card .item-desc { font-family: var(--display); font-size: 1.05rem; line-height: 1.2; margin: 0 0 4px; }
+  .item-card .item-status { font-size: 0.78rem; color: var(--pewter); }
+  .item-card .item-status.won { color: var(--boutonniere); font-weight: 600; }
+  .item-card .item-status .winner-num-inline { font-family: var(--display); font-weight: 700; }
+
   footer.foot { text-align: center; padding: 30px 0 10px; font-size: 0.76rem; color: #55565a; line-height: 1.6; }
   footer.foot a { color: var(--pewter); }
 
@@ -279,6 +308,12 @@
   .raffle-actions button { padding: 8px 14px; font-size: 0.82rem; border-radius: 999px; }
   .btn-small-primary { background: var(--white); color: var(--black); font-weight: 600; }
   .btn-small-outline { background: transparent; color: var(--white); border: 1px solid rgba(246,245,241,.3) !important; }
+
+  .item-edit-row { border: 1px solid rgba(195,198,202,.2); padding: 12px; margin-bottom: 10px; }
+  .item-edit-row .item-edit-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .item-edit-row .item-edit-status { font-size: 0.76rem; color: var(--pewter); }
+  .item-edit-row .item-edit-status.won { color: var(--boutonniere); font-weight: 600; }
+  .item-edit-row img { max-width: 100%; max-height: 120px; margin-top: 6px; border-radius: 4px; }
 
   .winner-banner { background: var(--boutonniere); color: var(--white); padding: 18px; text-align: center; margin-top: 10px; }
   .winner-banner .winner-num { font-family: var(--display); font-size: 2rem; font-weight: 700; }
