@@ -34,6 +34,35 @@ function crc16(payload) {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
+// Normaliza a chave Pix pro formato exato que o BR Code exige (senao o banco
+// recebedor rejeita o QR como "invalido", mesmo com o resto do payload certo).
+// Ex real que quebrou: "19 99852-3323" digitado como celular -> precisa virar "+5519998523323".
+function normalizePixKey(rawKey, keyType) {
+  const key = (rawKey || "").trim();
+  const type = (keyType || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (type === "celular" || type === "telefone" || type === "phone") {
+    let digits = key.replace(/\D/g, "");
+    if (digits.startsWith("55") && digits.length >= 12) {
+      // ja tem DDI
+    } else {
+      digits = "55" + digits;
+    }
+    return "+" + digits;
+  }
+
+  if (type === "cpf" || type === "cnpj") {
+    return key.replace(/\D/g, "");
+  }
+
+  // email e chave aleatoria (evp) vao como digitadas, so sem espacos nas pontas
+  return key;
+}
+
 /**
  * Monta o payload Pix "copia e cola" com valor fixo.
  * @param {{pixKey: string, amount: number, merchantName: string, merchantCity: string, txid?: string}} opts

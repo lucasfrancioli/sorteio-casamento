@@ -379,7 +379,7 @@ function paintConfirmation(activeRaffleMaybeGone) {
 
   const payload = pixReady
     ? buildPixPayload({
-        pixKey: settings.pix_key,
+        pixKey: normalizePixKey(settings.pix_key, settings.pix_key_type),
         amount: result.total,
         merchantName: settings.event_name,
         merchantCity: "BRASIL",
@@ -481,7 +481,15 @@ async function renderAdmin() {
     <label>Chave Pix</label>
     <input type="text" id="cfg-pix-key" value="${escapeHtml(settings.pix_key || "")}" placeholder="CPF, celular, e-mail ou chave aleatória" />
     <label>Tipo de chave</label>
-    <input type="text" id="cfg-pix-type" value="${escapeHtml(settings.pix_key_type || "")}" placeholder="ex: celular" />
+    <select id="cfg-pix-type">
+      <option value="">selecione...</option>
+      <option value="celular" ${settings.pix_key_type === "celular" ? "selected" : ""}>Celular</option>
+      <option value="cpf" ${settings.pix_key_type === "cpf" ? "selected" : ""}>CPF</option>
+      <option value="cnpj" ${settings.pix_key_type === "cnpj" ? "selected" : ""}>CNPJ</option>
+      <option value="email" ${settings.pix_key_type === "email" ? "selected" : ""}>E-mail</option>
+      <option value="aleatoria" ${settings.pix_key_type === "aleatoria" ? "selected" : ""}>Chave aleatória</option>
+    </select>
+    <p style="font-size:0.78rem;color:var(--smoke);margin-top:4px">Celular: pode digitar com DDD normalmente (ex: 19 99852-3323), o sistema ajusta o formato sozinho.</p>
     <button class="btn-primary" id="save-settings" style="margin-top:14px">Salvar evento</button>
     <p id="settings-msg" style="font-size:0.85rem;margin-top:8px"></p>
 
@@ -494,12 +502,14 @@ async function renderAdmin() {
   `;
 
   document.getElementById("save-settings").addEventListener("click", async () => {
+    const rawType = document.getElementById("cfg-pix-type").value.trim();
+    const rawKey = document.getElementById("cfg-pix-key").value.trim();
     const { error } = await sb.rpc("admin_update_site_settings", {
       p_admin_key: adminKey,
       p_event_name: document.getElementById("cfg-event-name").value.trim(),
       p_event_date: document.getElementById("cfg-event-date").value.trim() || null,
-      p_pix_key: document.getElementById("cfg-pix-key").value.trim(),
-      p_pix_key_type: document.getElementById("cfg-pix-type").value.trim(),
+      p_pix_key: normalizePixKey(rawKey, rawType),
+      p_pix_key_type: rawType,
     });
     const msg = document.getElementById("settings-msg");
     if (error) {
