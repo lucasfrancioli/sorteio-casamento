@@ -342,6 +342,8 @@ function paintActiveRaffle(raffle) {
         <div class="tiers" id="tiers" style="margin-top:14px"></div>
       </div>
 
+      <div class="hairline" style="margin:0 0 22px"></div>
+
       ${howToHtml()}
 
       <div class="section satin-edge" id="grid-section" ${guestState.selectedTier ? "" : "hidden"}>
