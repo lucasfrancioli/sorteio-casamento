@@ -758,8 +758,9 @@ function paintConfirmation(activeRaffleMaybeGone) {
     : null;
 
   app.innerHTML = `
-    ${heroHtml()}
+    <div style="padding-top:28px">${markHtml()}</div>
     <div class="wrap">
+      <div class="hairline" style="margin:18px 0"></div>
       <div class="confirm">
         ${tieCutSceneHtml()}
         <p class="nums-label">seus números da sorte</p>
