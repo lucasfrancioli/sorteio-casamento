@@ -386,6 +386,7 @@ function paintActiveRaffle(raffle) {
     });
 
   const tiersEl = document.getElementById("tiers");
+  tiersEl.style.gridTemplateColumns = `repeat(${tiers.length === 4 ? 2 : Math.min(tiers.length, 3) || 1}, 1fr)`;
   tiersEl.innerHTML = tiers
     .map(
       (t, i) =>
