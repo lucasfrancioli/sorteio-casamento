@@ -84,6 +84,28 @@
     color: var(--boutonniere);
   }
 
+  .intro-screen {
+    min-height: 100dvh;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 24px 22px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .intro-card {
+    width: 100%; max-width: 360px; text-align: center;
+    padding: 28px 24px 26px;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(22, 40, 74, 0.14);
+  }
+  .intro-card small {
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink-soft); font-size: 0.72rem; font-weight: 600;
+  }
+  .intro-card h1 {
+    font-family: var(--display); font-style: italic; font-weight: 600;
+    font-size: 1.7rem; margin: 10px 0 22px; color: var(--ink);
+  }
+
   .hero {
     padding: 40px 22px 8px;
     text-align: center;

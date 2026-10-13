@@ -116,6 +116,7 @@ let guestState = {
   submitting: false,
   error: null,
   result: null,
+  introDismissedFor: null,
 };
 
 async function renderGuest() {
@@ -190,11 +191,36 @@ function paintGuest() {
   }
 
   if (active) {
+    if (guestState.introDismissedFor !== active.id) {
+      paintIntro(active);
+      return;
+    }
     paintActiveRaffle(active);
     return;
   }
 
   paintWaitingOrWinner();
+}
+
+function paintIntro(raffle) {
+  const { settings } = guestState;
+  const items = itemsForRaffle(raffle.id);
+  const label = items.map((it) => it.description).join(" · ") || settings.event_name;
+
+  app.innerHTML = `
+    <div style="padding-top:28px">${markHtml()}</div>
+    <div class="intro-screen">
+      <div class="intro-card">
+        <small>${escapeHtml(label)}</small>
+        <h1>Garanta seu pedaço ✂️</h1>
+        <button type="button" class="btn-primary" id="intro-choose">Escolher valor</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("intro-choose").addEventListener("click", () => {
+    guestState.introDismissedFor = raffle.id;
+    paintGuest();
+  });
 }
 
 function heroHtml() {
