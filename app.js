@@ -31,6 +31,7 @@ function markHtml() {
 function route() {
   document.body.classList.toggle("admin", location.hash.startsWith("#admin"));
   if (location.hash.startsWith("#admin")) {
+    document.body.classList.remove("intro-active");
     renderAdmin();
   } else {
     renderGuest();
@@ -207,6 +208,7 @@ function paintIntro(raffle) {
   const items = itemsForRaffle(raffle.id);
   const label = items.map((it) => it.description).join(" · ") || settings.event_name;
 
+  document.body.classList.add("intro-active");
   app.innerHTML = `
     <div style="padding-top:28px">${markHtml()}</div>
     <div class="intro-screen">
@@ -256,6 +258,7 @@ function howToHtml() {
 }
 
 function paintWaitingOrWinner() {
+  document.body.classList.remove("intro-active");
   const { raffles } = guestState;
   const drawn = raffles.filter((r) => r.status === "drawn").sort((a, b) => new Date(b.drawn_at) - new Date(a.drawn_at));
   const upcoming = raffles.filter((r) => r.status === "draft").sort((a, b) => a.position - b.position);
@@ -310,6 +313,7 @@ function paintWaitingOrWinner() {
 }
 
 function paintActiveRaffle(raffle) {
+  document.body.classList.remove("intro-active");
   const { numbers } = guestState;
   const tiers = raffle.pricing_tiers || [];
   const takenCount = numbers.filter((n) => n.reservation_id).length;
@@ -739,6 +743,7 @@ function initTieCut(container, { title, msg, instant, overlay }) {
 }
 
 function paintConfirmation(activeRaffleMaybeGone) {
+  document.body.classList.remove("intro-active");
   const { settings, result } = guestState;
   const pixReady = Boolean(settings.pix_key);
 

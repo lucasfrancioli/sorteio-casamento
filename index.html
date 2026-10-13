@@ -23,10 +23,12 @@
   * { box-sizing: border-box; }
 
   .gravata-bg {
-    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    display: none;
+    position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
     background: radial-gradient(ellipse 90% 75% at 50% 42%, #fbfcfd 0%, #e7eaee 55%, #c9ced5 100%);
-    opacity: 0.4;
   }
+  body.intro-active .gravata-bg { display: block; }
+  body.intro-active #app { position: relative; z-index: 1; }
   .gravata-bg .camada {
     position: absolute; top: 0; left: 50%; height: 100%;
     aspect-ratio: 720 / 1630; transform: translateX(-50%);
@@ -49,6 +51,7 @@
   html, body {
     margin: 0;
     padding: 0;
+    background: var(--paper);
     color: var(--ink);
     font-family: var(--body);
     -webkit-font-smoothing: antialiased;
@@ -360,6 +363,7 @@
   [hidden] { display: none !important; }
 
   /* ---------- Admin ---------- */
+  body.admin { background: var(--paper-dim); }
   .admin .wrap { max-width: 560px; }
   .admin-header { padding: 24px 0 8px; }
   .admin-header h1 { font-family: var(--display); font-style: italic; font-size: 1.5rem; margin: 0; color: var(--ink); }
