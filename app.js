@@ -315,7 +315,8 @@ function paintActiveRaffle(raffle) {
   const items = itemsForRaffle(raffle.id);
 
   app.innerHTML = `
-    ${heroHtml()}
+    <div style="padding-top:28px">${markHtml()}</div>
+    <div class="tie-ribbon"></div>
     <div class="wrap">
       <div class="status-row" style="margin-top:0"><span class="dot live"></span><span>sorteio ao vivo agora</span></div>
 
@@ -327,12 +328,10 @@ function paintActiveRaffle(raffle) {
               return `
               <div class="item-card">
                 ${it.image_url ? `<img src="${escapeHtml(it.image_url)}" alt="" />` : ""}
-                <div class="item-body">
-                  <p class="item-desc">${escapeHtml(it.description)}</p>
-                  <p class="item-status ${drawn ? "won" : ""}" data-item-id="${it.id}">
-                    ${drawn ? `já sorteado — número <span class="winner-num-inline">${String(it.winner_number).padStart(2, "0")}</span>` : "ainda não sorteado"}
-                  </p>
-                </div>
+                <p class="item-desc">${escapeHtml(it.description)}</p>
+                <p class="item-status ${drawn ? "won" : ""}" data-item-id="${it.id}">
+                  ${drawn ? `já sorteado — número <span class="winner-num-inline">${String(it.winner_number).padStart(2, "0")}</span>` : "ainda não sorteado"}
+                </p>
               </div>`;
             })
             .join("")}
