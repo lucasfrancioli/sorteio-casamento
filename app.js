@@ -204,7 +204,6 @@ function heroHtml() {
       ${markHtml()}
       <h1>${escapeHtml(settings.event_name)}</h1>
       ${settings.event_date ? `<p class="date">${escapeHtml(formatEventDate(settings.event_date))}</p>` : ""}
-      <div class="hero-photo"><img src="tie-photo.jpg" alt="Gravata azul-marinho" /></div>
       <p class="sub">Cada doação concorre a um número da sorte. Os prêmios são sorteados em sequência, ao vivo.</p>
     </div>
     <div class="tie-ribbon"></div>

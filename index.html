@@ -22,6 +22,10 @@
 
   * { box-sizing: border-box; }
 
+  #bg-tie { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  #bg-tie img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; opacity: 0.22; }
+  #app { position: relative; z-index: 1; }
+
   html, body {
     margin: 0;
     padding: 0;
@@ -64,10 +68,7 @@
   .hero {
     padding: 40px 22px 8px;
     text-align: center;
-    background: var(--paper);
   }
-  .hero-photo { margin: 20px -22px 10px; height: 230px; overflow: hidden; }
-  .hero-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; display: block; }
   .hero h1 {
     font-family: var(--display);
     font-weight: 600;
@@ -358,6 +359,7 @@
 </head>
 <body>
 
+<div id="bg-tie" aria-hidden="true"><img src="tie-animated.svg" alt="" /></div>
 <div id="app" class="wrap">Carregando…</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
