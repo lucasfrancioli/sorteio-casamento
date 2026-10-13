@@ -22,14 +22,33 @@
 
   * { box-sizing: border-box; }
 
-  #bg-tie { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-  #bg-tie img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; opacity: 0.22; }
-  #app { position: relative; z-index: 1; }
+  .gravata-bg {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    background: radial-gradient(ellipse 90% 75% at 50% 42%, #fbfcfd 0%, #e7eaee 55%, #c9ced5 100%);
+    opacity: 0.4;
+  }
+  .gravata-bg .camada {
+    position: absolute; top: 0; left: 50%; height: 100%;
+    aspect-ratio: 720 / 1630; transform: translateX(-50%);
+  }
+  .gravata-bg svg, .gravata-bg .balanco, .gravata-bg .tecido { display: block; width: 100%; height: 100%; }
+  .gravata-bg .balanco {
+    transform-origin: 50.000% 10.429%;
+    animation: gravata-balanco 5s ease-in-out infinite;
+  }
+  .gravata-bg .tecido {
+    transform-origin: 50.000% 10.429%;
+    animation: gravata-tecido 5s ease-in-out -1.2s infinite;
+  }
+  @keyframes gravata-balanco { 0%, 100% { transform: rotate(-1.8deg); } 50% { transform: rotate(1.8deg); } }
+  @keyframes gravata-tecido  { 0%, 100% { transform: skewX(.7deg); }   50% { transform: skewX(-.7deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .gravata-bg .balanco, .gravata-bg .tecido { animation: none; }
+  }
 
   html, body {
     margin: 0;
     padding: 0;
-    background: var(--paper);
     color: var(--ink);
     font-family: var(--body);
     -webkit-font-smoothing: antialiased;
@@ -319,7 +338,6 @@
   [hidden] { display: none !important; }
 
   /* ---------- Admin ---------- */
-  body.admin { background: var(--paper-dim); }
   .admin .wrap { max-width: 560px; }
   .admin-header { padding: 24px 0 8px; }
   .admin-header h1 { font-family: var(--display); font-style: italic; font-size: 1.5rem; margin: 0; color: var(--ink); }
@@ -359,7 +377,51 @@
 </head>
 <body>
 
-<div id="bg-tie" aria-hidden="true"><img src="tie-animated.svg" alt="" /></div>
+<div class="gravata-bg" aria-hidden="true">
+  <div class="camada"><svg xmlns="http://www.w3.org/2000/svg" viewBox="180 190 720 1630" preserveAspectRatio="xMidYMin meet"><defs>
+    <linearGradient id="tie" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#36507e"/>
+      <stop offset="0.45" stop-color="#203457"/>
+      <stop offset="1" stop-color="#0d1830"/>
+    </linearGradient>
+    <linearGradient id="knot" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#2f4774"/>
+      <stop offset="1" stop-color="#172846"/>
+    </linearGradient>
+    <linearGradient id="collarL" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9ecef"/>
+    </linearGradient>
+    <linearGradient id="collarR" x1="1" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e3e7eb"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9dde2"/>
+      <stop offset="1" stop-color="#eef0f3"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-10%" width="160%" height="130%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="softS" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+    <path d="M366,318 L214,394 M714,318 L866,394" stroke="#b9bfc7" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>
+    <path d="M358,262 C402,208 678,208 722,262 C676,240 404,240 358,262 Z" fill="#ffffff" stroke="#d3d8de" stroke-width="1.5"/>
+    <path d="M366,264 C428,232 652,232 714,264 Q622,300 540,352 Q458,300 366,264 Z" fill="url(#inner)"/></svg></div>
+  <div class="camada"><div class="balanco"><div class="tecido"><svg xmlns="http://www.w3.org/2000/svg" viewBox="180 190 720 1630" preserveAspectRatio="xMidYMin meet">
+    <path d="M508,505 C500,820 438,1250 414,1592 L540,1728 L666,1592 C642,1250 580,820 572,505 Z" fill="#0b1426" opacity=".28" filter="url(#soft)" transform="translate(22 26)"/>
+    <path d="M508,505 C500,820 438,1250 414,1592 L540,1728 L666,1592 C642,1250 580,820 572,505 Z" fill="url(#tie)"/>
+    <path d="M506,520 Q540,560 574,520" fill="#0a1428" opacity=".25"/>
+    <path d="M468,346 Q540,334 612,346 L574,518 Q540,530 506,518 Z" fill="url(#knot)"/>
+    <path d="M520,512 Q540,498 560,512" stroke="#0a1428" stroke-width="3" fill="none" stroke-linecap="round" opacity=".35"/></svg></div></div></div>
+  <div class="camada"><svg xmlns="http://www.w3.org/2000/svg" viewBox="180 190 720 1630" preserveAspectRatio="xMidYMin meet">
+    <path d="M358,262 Q440,292 494,344 L486,446 L423,508 Q392,404 358,262 Z" fill="#3a4250" opacity=".22" filter="url(#softS)" transform="translate(10 14)"/>
+    <path d="M722,262 Q640,292 586,344 L594,446 L657,508 Q688,404 722,262 Z" fill="#3a4250" opacity=".22" filter="url(#softS)" transform="translate(10 14)"/>
+    <path d="M358,262 Q440,292 494,344 L486,446 L423,508 Q392,404 358,262 Z" fill="url(#collarL)" stroke="#d3d8de" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M722,262 Q640,292 586,344 L594,446 L657,508 Q688,404 722,262 Z" fill="url(#collarR)" stroke="#d3d8de" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+</div>
 <div id="app" class="wrap">Carregando…</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
