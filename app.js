@@ -317,7 +317,8 @@ function paintActiveRaffle(raffle) {
   app.innerHTML = `
     <div style="padding-top:28px">${markHtml()}</div>
     <div class="wrap">
-      <div class="prize" style="padding-top:22px">
+      <div class="hairline" style="margin:18px 0"></div>
+      <div class="prize">
         <h2>Sorteio do dia</h2>
         <div class="items-list">
           ${items
@@ -336,7 +337,9 @@ function paintActiveRaffle(raffle) {
             })
             .join("")}
         </div>
-        <div class="tiers" id="tiers" style="margin-top:18px"></div>
+        <div class="hairline" style="margin:22px 0"></div>
+        <h2>Escolha um pacote</h2>
+        <div class="tiers" id="tiers" style="margin-top:14px"></div>
       </div>
 
       ${howToHtml()}
