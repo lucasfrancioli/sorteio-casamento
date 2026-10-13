@@ -255,6 +255,22 @@
     font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums;
   }
 
+  .tiecut-stage { width: 100%; max-width: 280px; margin: 0 auto; text-align: center; }
+  .tiecut-stage svg { width: 100%; height: auto; display: block; }
+  .tiecut-stage .p-base { fill: var(--ink); }
+  .tiecut-stage .p-stripe { fill: var(--boutonniere); }
+  .tiecut-stage .tie-fill { fill: url(#tcStripes); }
+  .tiecut-stage .tie-shade { fill: #000; opacity: .14; }
+  .tiecut-stage .tie-line { fill: none; stroke: #0B1830; stroke-width: 1.5; stroke-linejoin: round; }
+  .tiecut-stage .tc-collar { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .tiecut-stage .tc-handle { fill: none; stroke: var(--boutonniere); stroke-width: 5.5; stroke-linecap: round; }
+  .tiecut-stage .tc-gap { stroke: var(--paper); stroke-width: 2.6; stroke-linecap: round; }
+  .tiecut-caption { opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; min-height: 70px; margin-top: 14px; }
+  .tiecut-caption.show { opacity: 1; transform: none; }
+  .tiecut-caption h2 { font-family: var(--display); font-style: italic; font-weight: 600; font-size: 1.4rem; margin: 0 0 8px; color: var(--ink); }
+  .tiecut-caption p { margin: 0 auto; max-width: 32ch; color: var(--ink-soft); font-size: 0.92rem; line-height: 1.5; }
+  .tiecut-stage .btn-ghost[hidden] { display: none; }
+
   .pix-box { background: #FFFFFF; border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: 0 8px 24px rgba(22, 40, 74, 0.08); }
   .pix-box img, .pix-box canvas { display: block; margin: 0 auto; }
   .pix-code {

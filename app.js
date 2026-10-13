@@ -463,6 +463,241 @@ async function submitClaim(raffle) {
   paintGuest();
 }
 
+let tieCutPlayedFor = null;
+
+function tieCutSceneHtml() {
+  return `<div class="tiecut-stage">
+    <svg id="tcScene" viewBox="0 0 300 420" role="img" aria-label="Uma tesoura corta a ponta da gravata">
+      <defs>
+        <pattern id="tcStripes" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(-40)">
+          <rect class="p-base" width="16" height="16"/>
+          <rect class="p-stripe" width="16" height="3" opacity=".9"/>
+          <rect class="p-stripe" y="8" width="16" height="1" opacity=".5"/>
+        </pattern>
+        <linearGradient id="tcSteel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4f6f8"/>
+          <stop offset=".55" stop-color="#b3bbc5"/>
+          <stop offset="1" stop-color="#8e97a3"/>
+        </linearGradient>
+        <filter id="tcShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".25"/>
+        </filter>
+        <path id="tcTieShape" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+        <clipPath id="tcClipTie"><use href="#tcTieShape"/></clipPath>
+        <clipPath id="tcClipTop"><polygon points="0,0 300,0 300,210 0,250"/></clipPath>
+        <clipPath id="tcClipBottom"><polygon points="0,250 300,210 300,440 0,440"/></clipPath>
+        <g id="tcBladeShape">
+          <path class="tc-handle" d="M4,-3 Q20,-1 33,10"/>
+          <circle class="tc-handle" cx="42" cy="19" r="11"/>
+          <path d="M9,0 L-76,0 C-64,-6 -42,-11 -14,-11 C0,-11 9,-7 9,-3 Z" fill="url(#tcSteel)" stroke="#7d8692" stroke-width=".8"/>
+        </g>
+      </defs>
+      <g id="tcWholeTie">
+        <path class="tie-fill" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+        <path class="tie-shade" d="M150,78 L163,78 L189,318 L150,364 Z"/>
+        <path class="tie-line" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+      </g>
+      <g id="tcBottomPiece" clip-path="url(#tcClipBottom)" style="display:none">
+        <path class="tie-fill" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+        <path class="tie-shade" d="M150,78 L163,78 L189,318 L150,364 Z"/>
+        <path class="tie-line" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+      </g>
+      <g id="tcTopPiece" clip-path="url(#tcClipTop)" style="display:none">
+        <path class="tie-fill" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+        <path class="tie-shade" d="M150,78 L163,78 L189,318 L150,364 Z"/>
+        <path class="tie-line" d="M137,78 L163,78 L189,318 L150,364 L111,318 Z"/>
+      </g>
+      <line id="tcCutGap" class="tc-gap" clip-path="url(#tcClipTie)" x1="0" y1="0" x2="0" y2="0"/>
+      <path class="tc-collar" d="M150,40 L102,20 L120,74 Z"/>
+      <path class="tc-collar" d="M150,40 L198,20 L180,74 Z"/>
+      <path class="tie-fill" d="M126,38 Q150,32 174,38 L164,82 Q150,87 136,82 Z"/>
+      <path class="tie-shade" d="M150,35 Q162,35 174,38 L164,82 Q157,85 150,85 Z"/>
+      <path class="tie-line" d="M126,38 Q150,32 174,38 L164,82 Q150,87 136,82 Z"/>
+      <g id="tcConfetti"></g>
+      <g id="tcScissors" filter="url(#tcShadow)">
+        <g id="tcBladeB"><use href="#tcBladeShape" transform="scale(1,-1)"/></g>
+        <g id="tcBladeA"><use href="#tcBladeShape"/></g>
+        <circle r="3.6" fill="#6b7480" stroke="#e7eaee" stroke-width="1.2"/>
+      </g>
+    </svg>
+    <div class="tiecut-caption" id="tcCaption">
+      <h2 id="tcTitle"></h2>
+      <p id="tcMsg"></p>
+    </div>
+    <button class="btn-ghost" id="tcReplay" hidden>Ver de novo</button>
+  </div>`;
+}
+
+function initTieCut(container, { title, msg, instant }) {
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = (id) => container.querySelector("#" + id);
+  const sc = $("tcScissors"), bladeA = $("tcBladeA"), bladeB = $("tcBladeB");
+  const whole = $("tcWholeTie"), top = $("tcTopPiece"), bottom = $("tcBottomPiece");
+  const gap = $("tcCutGap"), conf = $("tcConfetti");
+  const caption = $("tcCaption"), btn = $("tcReplay");
+  $("tcTitle").textContent = title;
+  $("tcMsg").textContent = msg;
+
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const ANG = -7.6;
+  const cutY = (x) => 238 - (16 / 120) * (x - 90);
+  const CUT_R = 186, CUT_L = 114;
+  const ENTER = 700, SNIP0 = 800, SNIP = 480, CLOSE = 200, OPEN = 26;
+  const XS = [200, 176, 152];
+  const T_SPLIT = SNIP0 + 2 * SNIP + CLOSE + 30;
+  const T_EXIT = T_SPLIT + 150;
+  const T_END = T_SPLIT + 1500;
+
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const seg = (t, a, b) => clamp((t - a) / (b - a));
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+  const easeIn = (t) => t * t * t;
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+  const COLORS = ["#7D2235", "#9B3A4A", "#16284A", "#3C5484", "#D8CEB8"];
+  let bits = [];
+  function makeConfetti() {
+    conf.textContent = "";
+    bits = [];
+    for (let i = 0; i < 36; i++) {
+      const round = Math.random() < 0.3;
+      const el = document.createElementNS(NS, round ? "circle" : "rect");
+      if (round) {
+        el.setAttribute("r", 2.5);
+      } else {
+        const w = 4 + Math.random() * 3, h = 7 + Math.random() * 5;
+        el.setAttribute("x", -w / 2);
+        el.setAttribute("y", -h / 2);
+        el.setAttribute("width", w);
+        el.setAttribute("height", h);
+        el.setAttribute("rx", 1);
+      }
+      el.setAttribute("fill", COLORS[i % COLORS.length]);
+      el.setAttribute("opacity", 0);
+      conf.appendChild(el);
+      const x0 = 150 + (Math.random() - 0.5) * 40;
+      bits.push({
+        el, x0, y0: cutY(x0),
+        vx: (Math.random() - 0.5) * 0.38,
+        vy: -(0.18 + Math.random() * 0.28),
+        spin: (Math.random() - 0.5) * 0.9,
+        r0: Math.random() * 360,
+        life: 1300 + Math.random() * 500,
+      });
+    }
+  }
+
+  function render(t) {
+    let x, a, dy = 0, op = 1;
+    if (t < SNIP0) {
+      const k = easeOut(seg(t, 0, ENTER));
+      x = lerp(400, XS[0], k);
+      a = lerp(0, OPEN, k);
+    } else if (t < T_EXIT) {
+      const i = Math.min(2, Math.floor((t - SNIP0) / SNIP)), lt = t - SNIP0 - i * SNIP;
+      if (lt < CLOSE) {
+        x = XS[i];
+        a = lerp(OPEN, i === 2 ? 0 : 3, easeIn(lt / CLOSE));
+      } else if (i < 2) {
+        const k = easeInOut(seg(lt, CLOSE, SNIP));
+        x = lerp(XS[i], XS[i + 1], k);
+        a = lerp(3, OPEN, k);
+      } else {
+        x = XS[2];
+        a = 0;
+      }
+    } else {
+      const k = easeInOut(seg(t, T_EXIT, T_EXIT + 600));
+      x = lerp(XS[2], XS[2] + 90, k);
+      dy = lerp(0, -80, k);
+      a = lerp(0, 18, k);
+      op = 1 - k;
+    }
+    sc.setAttribute("transform", `translate(${x} ${cutY(x) + dy}) rotate(${ANG}) scale(1.15)`);
+    sc.setAttribute("opacity", op);
+    bladeA.setAttribute("transform", `rotate(${a})`);
+    bladeB.setAttribute("transform", `rotate(${-a})`);
+
+    let p = 0;
+    if (t >= SNIP0) {
+      const i = Math.min(2, Math.floor((t - SNIP0) / SNIP)), lt = t - SNIP0 - i * SNIP;
+      p = (i + (lt < CLOSE ? easeIn(lt / CLOSE) : 1)) / 3;
+    }
+    if (p > 0 && t < T_SPLIT) {
+      const x2 = lerp(CUT_R, CUT_L, p);
+      gap.setAttribute("x1", CUT_R + 4);
+      gap.setAttribute("y1", cutY(CUT_R + 4));
+      gap.setAttribute("x2", x2);
+      gap.setAttribute("y2", cutY(x2));
+      gap.style.display = "";
+    } else {
+      gap.style.display = "none";
+    }
+
+    const split = t >= T_SPLIT;
+    whole.style.display = split ? "none" : "";
+    top.style.display = bottom.style.display = split ? "" : "none";
+    if (split) {
+      const k = seg(t, T_SPLIT, T_SPLIT + 1300);
+      const ty = 360 * k * k, tx = 14 * k, rot = lerp(0, 26, easeOut(k));
+      bottom.setAttribute("transform", `translate(${tx} ${ty}) rotate(${rot} 150 232)`);
+      bottom.setAttribute("opacity", 1 - seg(t, T_SPLIT + 900, T_SPLIT + 1300));
+      const kk = (t - T_SPLIT) / 1000;
+      const swing = -3.5 * Math.exp(-2.8 * kk) * Math.sin(kk * 11);
+      top.setAttribute("transform", `rotate(${swing} 150 60)`);
+    }
+
+    for (const b of bits) {
+      const lt = t - T_SPLIT;
+      if (lt < 0 || lt > b.life) {
+        b.el.setAttribute("opacity", 0);
+        continue;
+      }
+      const bx = b.x0 + b.vx * lt, by = b.y0 + b.vy * lt + 0.5 * 0.0009 * lt * lt;
+      b.el.setAttribute("transform", `translate(${bx} ${by}) rotate(${b.r0 + b.spin * lt})`);
+      b.el.setAttribute("opacity", 1 - seg(lt, b.life - 350, b.life));
+    }
+
+    caption.classList.toggle("show", t >= T_SPLIT + 400);
+  }
+
+  let raf = 0;
+  function finish() {
+    btn.hidden = false;
+  }
+
+  function play() {
+    cancelAnimationFrame(raf);
+    btn.hidden = true;
+    makeConfetti();
+    if (reduce) {
+      render(T_END);
+      finish();
+      return;
+    }
+    const t0 = performance.now();
+    const step = (now) => {
+      const t = now - t0;
+      render(t);
+      if (t < T_END) raf = requestAnimationFrame(step);
+      else finish();
+    };
+    raf = requestAnimationFrame(step);
+  }
+
+  btn.addEventListener("click", play);
+
+  if (instant || reduce) {
+    render(T_END);
+    btn.hidden = false;
+  } else {
+    render(0);
+    play();
+  }
+}
+
 function paintConfirmation(activeRaffleMaybeGone) {
   const { settings, result } = guestState;
   const pixReady = Boolean(settings.pix_key);
@@ -481,9 +716,7 @@ function paintConfirmation(activeRaffleMaybeGone) {
     ${heroHtml()}
     <div class="wrap">
       <div class="confirm">
-        <div class="ring">✓</div>
-        <h2>Doação recebida, obrigado!</h2>
-        <p class="msg">${escapeHtml(result.guestName)}, seus números já estão guardados. Boa sorte em "${escapeHtml(result.prize)}".</p>
+        ${tieCutSceneHtml()}
         <p class="nums-label">seus números da sorte</p>
         <div class="confirm-numbers">${result.numbers.map((n) => `<span class="n">${String(n).padStart(2, "0")}</span>`).join("")}</div>
         ${
@@ -500,6 +733,13 @@ function paintConfirmation(activeRaffleMaybeGone) {
       <footer class="foot">gravata digital</footer>
     </div>
   `;
+
+  initTieCut(document.querySelector(".tiecut-stage"), {
+    title: "Pedaço garantido!",
+    msg: `${result.guestName}, seus números já estão guardados. Boa sorte em "${result.prize}".`,
+    instant: tieCutPlayedFor === result.reservationId,
+  });
+  tieCutPlayedFor = result.reservationId;
 
   if (pixReady) {
     new QRCode(document.getElementById("pix-qr"), {
