@@ -327,9 +327,11 @@ function paintActiveRaffle(raffle) {
               <div class="item-card">
                 ${it.image_url ? `<img src="${escapeHtml(it.image_url)}" alt="" />` : ""}
                 <p class="item-desc">${escapeHtml(it.description)}</p>
-                <p class="item-status ${drawn ? "won" : ""}" data-item-id="${it.id}">
-                  ${drawn ? `já sorteado — número <span class="winner-num-inline">${String(it.winner_number).padStart(2, "0")}</span>` : "ainda não sorteado"}
-                </p>
+                ${
+                  drawn
+                    ? `<p class="item-status won" data-item-id="${it.id}">já sorteado — número <span class="winner-num-inline">${String(it.winner_number).padStart(2, "0")}</span></p>`
+                    : ""
+                }
               </div>`;
             })
             .join("")}
