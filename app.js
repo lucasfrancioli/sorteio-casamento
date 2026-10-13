@@ -21,12 +21,17 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
-const tieSvg = `<svg class="tie-hero" viewBox="0 0 24 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs><linearGradient id="tieSheen" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#3C5484"/><stop offset=".5" stop-color="#16284A"/><stop offset="1" stop-color="#0B1830"/>
-  </linearGradient></defs>
-  <path d="M12 0 L17 7 L14.5 12 L12 10.5 L9.5 12 L7 7 Z" fill="url(#tieSheen)"/>
-  <path d="M14.5 12 L17 28 L12 37 L7 28 L9.5 12 Z" fill="url(#tieSheen)" opacity=".9"/>
+const tieSvg = `<svg class="tie-hero" viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="bladeClip"><path d="M68,106 L92,106 L101,162 L86,241 L80,251 L74,241 L59,162 Z"/></clipPath>
+  </defs>
+  <path d="M18,8 L80,56 L59,77 L16,38 Z" fill="#FAF7F1" opacity=".92"/>
+  <path d="M142,8 L80,56 L101,77 L144,38 Z" fill="#FAF7F1" opacity=".92"/>
+  <path d="M59,77 L101,77 L92,106 L68,106 Z" fill="#FAF7F1"/>
+  <path d="M68,106 L92,106 L101,162 L86,241 L80,251 L74,241 L59,162 Z" fill="#FAF7F1"/>
+  <g clip-path="url(#bladeClip)">
+    <rect x="35" y="172" width="110" height="15" transform="rotate(-20 90 180)" fill="#7D2235"/>
+  </g>
 </svg>`;
 
 function markHtml() {
@@ -210,9 +215,9 @@ function heroHtml() {
   return `
     <div class="hero">
       ${markHtml()}
-      ${tieSvg}
       <h1>${escapeHtml(settings.event_name)}</h1>
       ${settings.event_date ? `<p class="date">${escapeHtml(formatEventDate(settings.event_date))}</p>` : ""}
+      ${tieSvg}
       <p class="sub">Cada doação concorre a um número da sorte. Os prêmios são sorteados em sequência, ao vivo.</p>
     </div>
     <div class="tie-ribbon"></div>
