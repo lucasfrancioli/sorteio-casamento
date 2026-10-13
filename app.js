@@ -529,6 +529,11 @@ function tieCutSceneHtml() {
 }
 
 function initTieCut(container, { title, msg, instant, overlay }) {
+  if (instant) {
+    container.hidden = true;
+    return;
+  }
+
   const NS = "http://www.w3.org/2000/svg";
   const $ = (id) => container.querySelector("#" + id);
   const sc = $("tcScissors"), bladeA = $("tcBladeA"), bladeB = $("tcBladeB");
@@ -538,14 +543,18 @@ function initTieCut(container, { title, msg, instant, overlay }) {
   $("tcTitle").textContent = title;
   $("tcMsg").textContent = msg;
 
-  if (overlay && !instant) {
+  if (overlay) {
     container.classList.add("tc-overlay");
     document.body.style.overflow = "hidden";
   }
   function closeOverlay() {
-    if (!container.classList.contains("tc-overlay")) return;
+    if (!container.classList.contains("tc-overlay")) {
+      container.hidden = true;
+      return;
+    }
     container.classList.add("tc-hide");
     setTimeout(() => {
+      container.hidden = true;
       container.classList.remove("tc-overlay", "tc-hide");
       document.body.style.overflow = "";
     }, 400);
