@@ -23,7 +23,7 @@ function escapeHtml(s) {
 
 const tieSvg = `<svg class="tie-hero" viewBox="0 0 24 38" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs><linearGradient id="tieSheen" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F6F5F1"/><stop offset=".5" stop-color="#C3C6CA"/><stop offset="1" stop-color="#6E7175"/>
+    <stop offset="0" stop-color="#3C5484"/><stop offset=".5" stop-color="#16284A"/><stop offset="1" stop-color="#0B1830"/>
   </linearGradient></defs>
   <path d="M12 0 L17 7 L14.5 12 L12 10.5 L9.5 12 L7 7 Z" fill="url(#tieSheen)"/>
   <path d="M14.5 12 L17 28 L12 37 L7 28 L9.5 12 Z" fill="url(#tieSheen)" opacity=".9"/>
@@ -127,7 +127,7 @@ let guestState = {
 };
 
 async function renderGuest() {
-  app.innerHTML = `<p style="padding-top:60px;text-align:center;color:var(--pewter)">Carregando…</p>`;
+  app.innerHTML = `<p style="padding-top:60px;text-align:center;color:var(--ink-soft)">Carregando…</p>`;
   try {
     const [settings, raffles, allItems] = await Promise.all([loadSiteSettings(), loadRaffles(), loadAllRaffleItems()]);
     guestState.settings = settings;
@@ -136,7 +136,7 @@ async function renderGuest() {
     const active = raffles.find((r) => r.status === "active");
     guestState.numbers = active ? await loadNumbers(active.id) : [];
   } catch (err) {
-    app.innerHTML = `<p style="padding-top:60px;text-align:center;color:#e59a9a">Não consegui carregar. Atualize a página.</p>`;
+    app.innerHTML = `<p style="padding-top:60px;text-align:center;color:#9B3A3A">Não consegui carregar. Atualize a página.</p>`;
     console.error(err);
     return;
   }
@@ -215,6 +215,7 @@ function heroHtml() {
       ${settings.event_date ? `<p class="date">${escapeHtml(formatEventDate(settings.event_date))}</p>` : ""}
       <p class="sub">Cada doação concorre a um número da sorte. Os prêmios são sorteados em sequência, ao vivo.</p>
     </div>
+    <div class="tie-ribbon"></div>
   `;
 }
 
@@ -260,7 +261,7 @@ function paintWaitingOrWinner() {
                  )
                  .join("")}
              </div>`
-          : `<p style="text-align:center;color:var(--pewter);margin-top:30px">Nenhum sorteio aberto no momento. Fica de olho!</p>`
+          : `<p style="text-align:center;color:var(--ink-soft);margin-top:30px">Nenhum sorteio aberto no momento. Fica de olho!</p>`
       }
       ${
         upcoming.length > 0
@@ -544,12 +545,12 @@ async function renderAdmin() {
     return;
   }
 
-  app.innerHTML = `<p style="padding-top:40px;text-align:center;color:var(--pewter)">Carregando…</p>`;
+  app.innerHTML = `<p style="padding-top:40px;text-align:center;color:var(--ink-soft)">Carregando…</p>`;
   let settings, raffles, allItems;
   try {
     [settings, raffles, allItems] = await Promise.all([loadSiteSettings(), loadRaffles(), loadAllRaffleItems()]);
   } catch (err) {
-    app.innerHTML = `<p style="padding-top:40px;text-align:center;color:#e59a9a">Erro ao carregar.</p>`;
+    app.innerHTML = `<p style="padding-top:40px;text-align:center;color:#9B3A3A">Erro ao carregar.</p>`;
     console.error(err);
     return;
   }
@@ -578,7 +579,7 @@ async function renderAdmin() {
       <option value="email" ${settings.pix_key_type === "email" ? "selected" : ""}>E-mail</option>
       <option value="aleatoria" ${settings.pix_key_type === "aleatoria" ? "selected" : ""}>Chave aleatória</option>
     </select>
-    <p style="font-size:0.78rem;color:var(--smoke);margin-top:4px">Celular: pode digitar com DDD normalmente (ex: 19 99852-3323), o sistema ajusta o formato sozinho.</p>
+    <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:4px">Celular: pode digitar com DDD normalmente (ex: 19 99852-3323), o sistema ajusta o formato sozinho.</p>
     <button class="btn-primary" id="save-settings" style="margin-top:14px">Salvar evento</button>
     <p id="settings-msg" style="font-size:0.85rem;margin-top:8px"></p>
 
@@ -602,10 +603,10 @@ async function renderAdmin() {
     });
     const msg = document.getElementById("settings-msg");
     if (error) {
-      msg.style.color = "#e59a9a";
+      msg.style.color = "#9B3A3A";
       msg.textContent = "Chave de organizador inválida ou erro ao salvar.";
     } else {
-      msg.style.color = "#8fbf8f";
+      msg.style.color = "#2F7D4F";
       msg.textContent = "Salvo!";
       setTimeout(() => renderAdmin(), 500);
     }
@@ -618,7 +619,7 @@ async function renderAdmin() {
 
   const listEl = document.getElementById("raffles-list");
   if (raffles.length === 0) {
-    listEl.innerHTML = `<p style="color:var(--pewter)">Nenhum sorteio cadastrado ainda.</p>`;
+    listEl.innerHTML = `<p style="color:var(--ink-soft)">Nenhum sorteio cadastrado ainda.</p>`;
   } else {
     listEl.innerHTML = raffles
       .map((r) => {
@@ -629,7 +630,7 @@ async function renderAdmin() {
         const itemsSummary = items
           .map(
             (i) =>
-              `<div style="font-size:0.78rem;color:var(--pewter);padding:2px 0">${escapeHtml(i.description)}${i.winner_number ? ` — número ${String(i.winner_number).padStart(2, "0")}` : ""}</div>`
+              `<div style="font-size:0.78rem;color:var(--ink-soft);padding:2px 0">${escapeHtml(i.description)}${i.winner_number ? ` — número ${String(i.winner_number).padStart(2, "0")}` : ""}</div>`
           )
           .join("");
         return `
@@ -860,7 +861,7 @@ async function renderRaffleEditor(settings, raffles, id) {
     const msg = document.getElementById("raffle-msg");
 
     if (itemsPayload.length === 0) {
-      msg.style.color = "#e59a9a";
+      msg.style.color = "#9B3A3A";
       msg.textContent = "Adicione pelo menos um item a ser sorteado.";
       return;
     }
@@ -886,7 +887,7 @@ async function renderRaffleEditor(settings, raffles, id) {
     }
 
     if (error) {
-      msg.style.color = "#e59a9a";
+      msg.style.color = "#9B3A3A";
       msg.textContent = "Erro: " + error.message;
     } else {
       editingRaffleId = null;
