@@ -316,11 +316,9 @@ function paintActiveRaffle(raffle) {
 
   app.innerHTML = `
     <div style="padding-top:28px">${markHtml()}</div>
-    <div class="tie-ribbon"></div>
     <div class="wrap">
-      <div class="status-row" style="margin-top:0"><span class="dot live"></span><span>sorteio ao vivo agora</span></div>
-
-      <div class="prize satin-edge" style="padding-top:18px">
+      <div class="prize" style="padding-top:22px">
+        <h2>Sorteio do dia</h2>
         <div class="items-list">
           ${items
             .map((it) => {
