@@ -21,14 +21,6 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
-const tieSvg = `<svg class="tie-hero" viewBox="0 0 24 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs><linearGradient id="tieSheen" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#3C5484"/><stop offset=".5" stop-color="#16284A"/><stop offset="1" stop-color="#0B1830"/>
-  </linearGradient></defs>
-  <path d="M12 0 L17 7 L14.5 12 L12 10.5 L9.5 12 L7 7 Z" fill="url(#tieSheen)"/>
-  <path d="M14.5 12 L17 28 L12 37 L7 28 L9.5 12 Z" fill="url(#tieSheen)" opacity=".9"/>
-</svg>`;
-
 function markHtml() {
   return `<div class="mark"><div class="word"><b>Gravata</b><span>Digital</span></div></div>`;
 }
@@ -210,9 +202,9 @@ function heroHtml() {
   return `
     <div class="hero">
       ${markHtml()}
-      ${tieSvg}
       <h1>${escapeHtml(settings.event_name)}</h1>
       ${settings.event_date ? `<p class="date">${escapeHtml(formatEventDate(settings.event_date))}</p>` : ""}
+      <div class="hero-photo"><img src="tie-photo.jpg" alt="Gravata azul-marinho" /></div>
       <p class="sub">Cada doação concorre a um número da sorte. Os prêmios são sorteados em sequência, ao vivo.</p>
     </div>
     <div class="tie-ribbon"></div>
