@@ -62,19 +62,11 @@
   }
 
   .hero {
-    padding: 36px 22px 30px;
-    margin: 0 -22px;
+    padding: 40px 22px 8px;
     text-align: center;
-    background: var(--ink);
+    background: var(--paper);
   }
-  .hero .mark .word b { color: var(--paper); }
-  .hero .mark .word span { color: #E3A6AE; }
-  .hero .tie-hero {
-    width: clamp(150px, 48vw, 200px);
-    height: auto;
-    margin: 18px auto 14px;
-    filter: drop-shadow(0 14px 22px rgba(5, 10, 22, 0.35));
-  }
+  .hero .tie-hero { width: 40px; height: 62px; margin: 20px auto 14px; filter: drop-shadow(0 6px 10px rgba(22, 40, 74, 0.18)); }
   .hero h1 {
     font-family: var(--display);
     font-weight: 600;
@@ -82,25 +74,25 @@
     font-size: clamp(2rem, 9vw, 2.6rem);
     line-height: 1.05;
     margin: 0 0 10px;
-    color: var(--paper);
+    color: var(--ink);
   }
   .hero .date {
     font-size: 0.82rem;
-    color: rgba(250, 247, 241, 0.65);
-    margin: 0 0 4px;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
     font-variant-numeric: tabular-nums;
   }
   .hero p.sub {
     font-size: 0.94rem;
     line-height: 1.5;
-    color: rgba(250, 247, 241, 0.72);
+    color: var(--ink-soft);
     max-width: 34ch;
     margin: 0 auto;
   }
 
   .tie-ribbon {
     height: 8px;
-    margin: 0 -22px;
+    margin: 18px -22px 0;
     background: repeating-linear-gradient(45deg, var(--ink), var(--ink) 9px, var(--boutonniere) 9px, var(--boutonniere) 12px);
   }
 
