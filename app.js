@@ -204,16 +204,11 @@ function paintGuest() {
 }
 
 function paintIntro(raffle) {
-  const { settings } = guestState;
-  const items = itemsForRaffle(raffle.id);
-  const label = items.map((it) => it.description).join(" · ") || settings.event_name;
-
   document.body.classList.add("intro-active");
   app.innerHTML = `
     <div style="padding-top:28px">${markHtml()}</div>
     <div class="intro-screen">
       <div class="intro-card">
-        <small>${escapeHtml(label)}</small>
         <h1>Garanta seu pedaço ✂️</h1>
         <button type="button" class="btn-primary" id="intro-choose">Escolher valor</button>
       </div>
