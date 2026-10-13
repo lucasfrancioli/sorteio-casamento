@@ -528,7 +528,7 @@ function tieCutSceneHtml() {
   </div>`;
 }
 
-function initTieCut(container, { title, msg, instant }) {
+function initTieCut(container, { title, msg, instant, overlay }) {
   const NS = "http://www.w3.org/2000/svg";
   const $ = (id) => container.querySelector("#" + id);
   const sc = $("tcScissors"), bladeA = $("tcBladeA"), bladeB = $("tcBladeB");
@@ -537,6 +537,19 @@ function initTieCut(container, { title, msg, instant }) {
   const caption = $("tcCaption"), btn = $("tcReplay");
   $("tcTitle").textContent = title;
   $("tcMsg").textContent = msg;
+
+  if (overlay && !instant) {
+    container.classList.add("tc-overlay");
+    document.body.style.overflow = "hidden";
+  }
+  function closeOverlay() {
+    if (!container.classList.contains("tc-overlay")) return;
+    container.classList.add("tc-hide");
+    setTimeout(() => {
+      container.classList.remove("tc-overlay", "tc-hide");
+      document.body.style.overflow = "";
+    }, 400);
+  }
 
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -666,6 +679,7 @@ function initTieCut(container, { title, msg, instant }) {
   let raf = 0;
   function finish() {
     btn.hidden = false;
+    closeOverlay();
   }
 
   function play() {
@@ -738,6 +752,7 @@ function paintConfirmation(activeRaffleMaybeGone) {
     title: "Pedaço garantido!",
     msg: `${result.guestName}, seus números já estão guardados. Boa sorte em "${result.prize}".`,
     instant: tieCutPlayedFor === result.reservationId,
+    overlay: true,
   });
   tieCutPlayedFor = result.reservationId;
 

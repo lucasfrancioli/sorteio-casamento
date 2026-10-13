@@ -257,6 +257,15 @@
 
   .tiecut-stage { width: 100%; max-width: 280px; margin: 0 auto; text-align: center; }
   .tiecut-stage svg { width: 100%; height: auto; display: block; }
+  .tiecut-stage.tc-overlay {
+    position: fixed; inset: 0; z-index: 80; max-width: none;
+    background: var(--paper);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; margin: 0;
+    transition: opacity .4s ease;
+  }
+  .tiecut-stage.tc-overlay svg { max-width: 320px; width: 100%; margin: 0 auto; }
+  .tiecut-stage.tc-overlay.tc-hide { opacity: 0; pointer-events: none; }
   .tiecut-stage .p-base { fill: var(--ink); }
   .tiecut-stage .p-stripe { fill: var(--boutonniere); }
   .tiecut-stage .tie-fill { fill: url(#tcStripes); }
