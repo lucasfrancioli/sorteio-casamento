@@ -431,7 +431,7 @@ function paintActiveRaffle(raffle) {
 
       <div class="checkout satin-edge" id="checkout-section" ${guestState.selectedTier ? "" : "hidden"}>
         <div class="checkout-total">
-          <span class="label">total da doação</span>
+          <span class="label">${guestState.selectedTier ? `${guestState.selectedTier.quantity} número${guestState.selectedTier.quantity === 1 ? "" : "s"}` : ""}</span>
           <span class="amt">${guestState.selectedTier ? money(guestState.selectedTier.price) : money(0)}</span>
         </div>
         <input type="text" id="guest-name" placeholder="Seu nome" value="${escapeHtml(guestState.nameDraft || "")}" />
