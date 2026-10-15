@@ -79,11 +79,68 @@ async function loadAllRaffleItems() {
 async function loadReservations(raffleId) {
   const { data, error } = await sb
     .from("reservations")
-    .select("id, guest_name, total_price, created_at")
+    .select("id, guest_name, total_price, created_at, status")
     .eq("raffle_id", raffleId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
+}
+
+// Restaura a tela de confirmacao se o convidado saiu da pagina (abriu a
+// camera pra pagar o Pix, por exemplo) e voltou -- sem isso ele perderia os
+// numeros e o codigo Pix, achando que precisa escolher tudo de novo.
+const PENDING_RESERVATION_KEY = "gravata_reservation";
+
+function savePendingReservation(info) {
+  try {
+    localStorage.setItem(PENDING_RESERVATION_KEY, JSON.stringify(info));
+  } catch {
+    // localStorage pode falhar (modo privado, storage bloqueado) -- a reserva
+    // ainda funciona, so nao sobrevive a um reload.
+  }
+}
+
+function clearPendingReservation() {
+  try {
+    localStorage.removeItem(PENDING_RESERVATION_KEY);
+  } catch {}
+}
+
+function readPendingReservation() {
+  try {
+    const raw = localStorage.getItem(PENDING_RESERVATION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadReservationResult(reservationId) {
+  const { data: reservation, error: resErr } = await sb
+    .from("reservations")
+    .select("id, raffle_id, guest_name, total_price, status")
+    .eq("id", reservationId)
+    .maybeSingle();
+  if (resErr || !reservation) return null;
+
+  const { data: numbers, error: numErr } = await sb
+    .from("raffle_numbers")
+    .select("number")
+    .eq("reservation_id", reservationId)
+    .order("number");
+  if (numErr || !numbers?.length) return null;
+
+  const prizeLabel = itemsForRaffle(reservation.raffle_id).map((it) => it.description).join(" · ") || "Gravata Digital";
+
+  return {
+    raffleId: reservation.raffle_id,
+    prize: prizeLabel,
+    numbers: numbers.map((n) => n.number),
+    total: Number(reservation.total_price),
+    reservationId: reservation.id,
+    guestName: reservation.guest_name,
+    status: reservation.status,
+  };
 }
 
 async function loadWinnerGuestName(raffleId, winnerNumber) {
@@ -128,7 +185,20 @@ async function renderGuest() {
     guestState.raffles = raffles;
     guestState.allItems = allItems;
     const active = raffles.find((r) => r.status === "active");
+    if (active) await sb.rpc("release_expired_pending");
     guestState.numbers = active ? await loadNumbers(active.id) : [];
+
+    if (!guestState.result) {
+      const pending = readPendingReservation();
+      if (pending?.reservationId) {
+        const restored = await loadReservationResult(pending.reservationId);
+        if (restored) {
+          guestState.result = restored;
+        } else {
+          clearPendingReservation();
+        }
+      }
+    }
   } catch (err) {
     app.innerHTML = `<p style="padding-top:60px;text-align:center;color:#9B3A3A">Não consegui carregar. Atualize a página.</p>`;
     console.error(err);
@@ -480,7 +550,8 @@ async function submitClaim(raffle) {
   }
 
   const prizeLabel = itemsForRaffle(raffle.id).map((it) => it.description).join(" · ") || "Gravata Digital";
-  guestState.result = { raffleId: raffle.id, prize: prizeLabel, numbers: numbersArr, total, reservationId: data, guestName: name };
+  guestState.result = { raffleId: raffle.id, prize: prizeLabel, numbers: numbersArr, total, reservationId: data, guestName: name, status: "pending" };
+  savePendingReservation({ reservationId: data });
   paintGuest();
 }
 
@@ -745,7 +816,8 @@ function initTieCut(container, { title, msg, instant, overlay }) {
 function paintConfirmation(activeRaffleMaybeGone) {
   document.body.classList.remove("intro-active");
   const { settings, result } = guestState;
-  const pixReady = Boolean(settings.pix_key);
+  const isPending = result.status !== "paid";
+  const pixReady = isPending && Boolean(settings.pix_key);
 
   const payload = pixReady
     ? buildPixPayload({
@@ -766,14 +838,25 @@ function paintConfirmation(activeRaffleMaybeGone) {
         <p class="nums-label">seus números da sorte</p>
         <div class="confirm-numbers">${result.numbers.map((n) => `<span class="n">${String(n).padStart(2, "0")}</span>`).join("")}</div>
         ${
-          pixReady
-            ? `<div class="satin-edge"><div style="padding-top:20px"><div class="pix-box">
-                 <div id="pix-qr"></div>
-                 <div class="pix-code" id="pix-copy-text">${escapeHtml(payload)}</div>
-                 <button class="btn-copy" id="copy-pix">Copiar código pix</button>
-               </div>
-               <p class="pix-hint">Pague ${money(result.total)} via Pix com o código acima. Guarde esta tela até o sorteio.</p></div></div>`
-            : `<p class="pix-hint">Pague ${money(result.total)} via Pix diretamente com o casal.</p>`
+          isPending
+            ? `<div class="satin-edge"><div style="padding-top:20px">
+                 ${
+                   pixReady
+                     ? `<div class="pix-box">
+                          <div id="pix-qr"></div>
+                          <div class="pix-code" id="pix-copy-text">${escapeHtml(payload)}</div>
+                          <button class="btn-copy" id="copy-pix">Copiar código pix</button>
+                        </div>
+                        <p class="pix-hint">Pague ${money(result.total)} via Pix com o código acima. Guarde esta tela até o sorteio.</p>`
+                     : `<p class="pix-hint">Pague ${money(result.total)} via Pix diretamente com o casal.</p>`
+                 }
+                 <button class="btn-primary" id="confirm-payment-btn" style="margin-top:14px">Já paguei — confirmar pagamento</button>
+                 <p id="confirm-payment-msg" style="font-size:0.85rem;margin-top:8px;color:#9B3A3A"></p>
+               </div></div>`
+            : `<div class="satin-edge"><div style="padding-top:20px">
+                 <p class="pix-hint" style="color:#2E7D4F">✅ Pagamento confirmado. Obrigado pela doação!</p>
+                 <button class="btn-ghost" id="buy-again-btn" style="margin-top:14px">Fazer outra doação</button>
+               </div></div>`
         }
       </div>
       <footer class="foot">gravata digital</footer>
@@ -803,6 +886,44 @@ function paintConfirmation(activeRaffleMaybeGone) {
       } catch {
         // clipboard pode falhar em alguns navegadores -- o texto ja esta visivel pra copiar manualmente
       }
+    });
+  }
+
+  if (isPending) {
+    const btn = document.getElementById("confirm-payment-btn");
+    const msg = document.getElementById("confirm-payment-msg");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Confirmando...";
+      const { error } = await sb.rpc("confirm_payment", { p_reservation_id: result.reservationId });
+
+      if (error) {
+        if (error.message.includes("nao encontrada")) {
+          msg.textContent = "Essa reserva expirou e os números foram liberados. Escolha de novo.";
+          clearPendingReservation();
+          guestState.result = null;
+          const active = guestState.raffles.find((r) => r.status === "active");
+          guestState.numbers = active ? await loadNumbers(active.id) : [];
+          setTimeout(() => paintGuest(), 2000);
+        } else {
+          msg.textContent = "Não consegui confirmar agora. Tente de novo.";
+          btn.disabled = false;
+          btn.textContent = "Já paguei — confirmar pagamento";
+        }
+        return;
+      }
+
+      guestState.result.status = "paid";
+      paintGuest();
+    });
+  } else {
+    document.getElementById("buy-again-btn").addEventListener("click", () => {
+      guestState.result = null;
+      clearPendingReservation();
+      guestState.selectedTier = null;
+      guestState.selected = new Set();
+      guestState.nameDraft = "";
+      paintGuest();
     });
   }
 }
@@ -967,7 +1088,7 @@ async function renderRaffleEditor(settings, raffles, id) {
     : [[], [], []];
 
   const tiers = (raffle?.pricing_tiers || []).map((t) => ({ ...t }));
-  const arrecadado = reservations.reduce((sum, r) => sum + Number(r.total_price), 0);
+  const arrecadado = reservations.filter((r) => r.status === "paid").reduce((sum, r) => sum + Number(r.total_price), 0);
   const taken = numbers.filter((n) => n.reservation_id).length;
 
   app.innerHTML = `
@@ -1007,7 +1128,7 @@ async function renderRaffleEditor(settings, raffles, id) {
     ${
       !isNew && reservations.length > 0
         ? `<h2 class="grid-head" style="font-family:var(--display);font-style:italic;font-size:1.1rem;margin-top:24px">Quem já doou</h2>
-           <div>${reservations.map((r) => `<div class="reservation-row"><span>${escapeHtml(r.guest_name)}</span><span>${money(Number(r.total_price))}</span></div>`).join("")}</div>`
+           <div>${reservations.map((r) => `<div class="reservation-row"><span>${r.status === "paid" ? "✅" : "⏳"} ${escapeHtml(r.guest_name)}</span><span>${money(Number(r.total_price))}</span></div>`).join("")}</div>`
         : ""
     }
 
