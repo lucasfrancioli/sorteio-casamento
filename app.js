@@ -850,11 +850,12 @@ function paintConfirmation(activeRaffleMaybeGone) {
                         <p class="pix-hint">Pague ${money(result.total)} via Pix com o código acima. Guarde esta tela até o sorteio.</p>`
                      : `<p class="pix-hint">Pague ${money(result.total)} via Pix diretamente com o casal.</p>`
                  }
-                 <button class="btn-primary" id="confirm-payment-btn" style="margin-top:14px">Já paguei — confirmar pagamento</button>
+                 <button class="btn-primary" id="confirm-payment-btn" style="margin-top:14px">Já paguei<span class="btn-sub">(confirmar pagamento)</span></button>
                  <p id="confirm-payment-msg" style="font-size:0.85rem;margin-top:8px;color:#9B3A3A"></p>
                </div></div>`
             : `<div class="satin-edge"><div style="padding-top:20px">
-                 <p class="pix-hint" style="color:#2E7D4F">✅ Pagamento confirmado. Obrigado pela doação!</p>
+                 <p class="pix-hint" style="color:#2E7D4F">✅ Pagamento confirmado.</p>
+                 <p class="pix-hint" style="margin-top:20px">Agradecemos de coração a ajuda!!<br><br>Com carinho,<br>Maiara e Lucas</p>
                  <button class="btn-ghost" id="buy-again-btn" style="margin-top:14px">Fazer outra doação</button>
                </div></div>`
         }
@@ -908,7 +909,7 @@ function paintConfirmation(activeRaffleMaybeGone) {
         } else {
           msg.textContent = "Não consegui confirmar agora. Tente de novo.";
           btn.disabled = false;
-          btn.textContent = "Já paguei — confirmar pagamento";
+          btn.innerHTML = `Já paguei<span class="btn-sub">(confirmar pagamento)</span>`;
         }
         return;
       }
