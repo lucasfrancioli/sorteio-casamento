@@ -29,8 +29,13 @@ function markHtml() {
 // Roteamento
 // ---------------------------------------------------------------------------
 function route() {
-  document.body.classList.toggle("admin", location.hash.startsWith("#admin"));
-  if (location.hash.startsWith("#admin")) {
+  const isSuperAdmin = location.hash.startsWith("#superadmin");
+  const isAdmin = location.hash.startsWith("#admin");
+  document.body.classList.toggle("admin", isAdmin || isSuperAdmin);
+  if (isSuperAdmin) {
+    document.body.classList.remove("intro-active");
+    renderSuperAdmin();
+  } else if (isAdmin) {
     document.body.classList.remove("intro-active");
     renderAdmin();
   } else {
@@ -1302,6 +1307,92 @@ async function renderRaffleEditor(settings, raffles, id) {
       editingRaffleId = null;
       renderAdmin();
     }
+  });
+}
+
+// ===========================================================================
+// VISAO DO ADMINISTRADOR (#superadmin) -- nao e pro casal, e pra quem mantem
+// o site. Gera/revoga a chave que o casal usa pra entrar em #admin.
+// ===========================================================================
+let superAdminKey = sessionStorage.getItem("gravata_superadmin_key") || "";
+
+function superAdminLoginHtml(errorMsg) {
+  return `
+    ${markHtml()}
+    <div class="admin-header"><h1>Administrador</h1></div>
+    ${errorMsg ? `<p style="color:#9B3A3A;font-size:0.85rem;margin-bottom:10px">${escapeHtml(errorMsg)}</p>` : ""}
+    <label>Chave de administrador</label>
+    <input type="text" id="superadmin-key-input" placeholder="Cole a chave aqui" />
+    <button class="btn-primary" id="superadmin-login" style="margin-top:10px">Entrar</button>
+  `;
+}
+
+function wireSuperAdminLogin() {
+  document.getElementById("superadmin-login").addEventListener("click", () => {
+    const v = document.getElementById("superadmin-key-input").value.trim();
+    if (!v) return;
+    superAdminKey = v;
+    sessionStorage.setItem("gravata_superadmin_key", v);
+    renderSuperAdmin();
+  });
+}
+
+async function renderSuperAdmin() {
+  if (!superAdminKey) {
+    app.innerHTML = superAdminLoginHtml();
+    wireSuperAdminLogin();
+    return;
+  }
+
+  app.innerHTML = `<p style="padding-top:40px;text-align:center;color:var(--ink-soft)">Carregando…</p>`;
+
+  const { data: key, error } = await sb.rpc("superadmin_get_organizer_key", { p_super_key: superAdminKey });
+
+  if (error) {
+    superAdminKey = "";
+    sessionStorage.removeItem("gravata_superadmin_key");
+    app.innerHTML = superAdminLoginHtml("Chave inválida.");
+    wireSuperAdminLogin();
+    return;
+  }
+
+  app.innerHTML = `
+    ${markHtml()}
+    <div class="admin-header"><h1>Administrador</h1></div>
+    <div class="card" style="margin-bottom:14px">
+      <p style="font-size:0.85rem;color:var(--ink-soft);margin:0 0 8px">Chave atual do painel organizador (entregue ao casal em #admin)</p>
+      <div class="pix-code">${escapeHtml(key)}</div>
+      <button class="btn-copy" id="copy-organizer-key" style="margin-top:10px">Copiar chave</button>
+    </div>
+    <button class="btn-primary" id="rotate-key-btn">Gerar nova chave</button>
+    <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:8px">Isso invalida a chave atual na hora -- quem já tiver ela perde o acesso. Use depois do casamento pra encerrar o acesso do casal.</p>
+    <p id="rotate-msg" style="font-size:0.85rem;margin-top:8px;color:#9B3A3A"></p>
+    <button type="button" class="btn-ghost" id="superadmin-logout" style="margin-top:20px">Sair</button>
+  `;
+
+  document.getElementById("copy-organizer-key").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(key);
+      document.getElementById("copy-organizer-key").textContent = "Copiado!";
+    } catch {
+      // clipboard pode falhar em alguns navegadores -- a chave ja esta visivel pra copiar manualmente
+    }
+  });
+
+  document.getElementById("rotate-key-btn").addEventListener("click", async () => {
+    if (!window.confirm("Gerar uma nova chave? A chave atual vai parar de funcionar imediatamente.")) return;
+    const { error: rotErr } = await sb.rpc("superadmin_rotate_organizer_key", { p_super_key: superAdminKey });
+    if (rotErr) {
+      document.getElementById("rotate-msg").textContent = "Erro ao gerar nova chave. Tente de novo.";
+      return;
+    }
+    renderSuperAdmin();
+  });
+
+  document.getElementById("superadmin-logout").addEventListener("click", () => {
+    superAdminKey = "";
+    sessionStorage.removeItem("gravata_superadmin_key");
+    renderSuperAdmin();
   });
 }
 
