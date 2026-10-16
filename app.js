@@ -1312,33 +1312,43 @@ async function renderRaffleEditor(settings, raffles, id) {
 
 // ===========================================================================
 // VISAO DO ADMINISTRADOR (#superadmin) -- nao e pro casal, e pra quem mantem
-// o site. Gera/revoga a chave que o casal usa pra entrar em #admin.
+// o site. Login com usuario/senha; gera e revoga as chaves de organizador que
+// dao acesso ao #admin (cada casamento pode ter sua propria chave).
 // ===========================================================================
-let superAdminKey = sessionStorage.getItem("gravata_superadmin_key") || "";
+let superAdminCreds = JSON.parse(sessionStorage.getItem("gravata_superadmin_creds") || "null");
 
 function superAdminLoginHtml(errorMsg) {
   return `
     ${markHtml()}
     <div class="admin-header"><h1>Administrador</h1></div>
     ${errorMsg ? `<p style="color:#9B3A3A;font-size:0.85rem;margin-bottom:10px">${escapeHtml(errorMsg)}</p>` : ""}
-    <label>Chave de administrador</label>
-    <input type="text" id="superadmin-key-input" placeholder="Cole a chave aqui" />
+    <label>Usuário</label>
+    <input type="text" id="superadmin-user-input" autocomplete="username" />
+    <label>Senha</label>
+    <input type="password" id="superadmin-pass-input" autocomplete="current-password" />
     <button class="btn-primary" id="superadmin-login" style="margin-top:10px">Entrar</button>
   `;
 }
 
 function wireSuperAdminLogin() {
-  document.getElementById("superadmin-login").addEventListener("click", () => {
-    const v = document.getElementById("superadmin-key-input").value.trim();
-    if (!v) return;
-    superAdminKey = v;
-    sessionStorage.setItem("gravata_superadmin_key", v);
+  document.getElementById("superadmin-login").addEventListener("click", async () => {
+    const username = document.getElementById("superadmin-user-input").value.trim();
+    const password = document.getElementById("superadmin-pass-input").value;
+    if (!username || !password) return;
+    const { data: ok, error } = await sb.rpc("superadmin_login", { p_username: username, p_password: password });
+    if (error || !ok) {
+      app.innerHTML = superAdminLoginHtml("Usuário ou senha inválidos.");
+      wireSuperAdminLogin();
+      return;
+    }
+    superAdminCreds = { username, password };
+    sessionStorage.setItem("gravata_superadmin_creds", JSON.stringify(superAdminCreds));
     renderSuperAdmin();
   });
 }
 
 async function renderSuperAdmin() {
-  if (!superAdminKey) {
+  if (!superAdminCreds) {
     app.innerHTML = superAdminLoginHtml();
     wireSuperAdminLogin();
     return;
@@ -1346,52 +1356,117 @@ async function renderSuperAdmin() {
 
   app.innerHTML = `<p style="padding-top:40px;text-align:center;color:var(--ink-soft)">Carregando…</p>`;
 
-  const { data: key, error } = await sb.rpc("superadmin_get_organizer_key", { p_super_key: superAdminKey });
+  const { data: keys, error } = await sb.rpc("superadmin_list_organizer_keys", {
+    p_username: superAdminCreds.username,
+    p_password: superAdminCreds.password,
+  });
 
   if (error) {
-    superAdminKey = "";
-    sessionStorage.removeItem("gravata_superadmin_key");
-    app.innerHTML = superAdminLoginHtml("Chave inválida.");
+    superAdminCreds = null;
+    sessionStorage.removeItem("gravata_superadmin_creds");
+    app.innerHTML = superAdminLoginHtml("Sessão expirada. Entre novamente.");
     wireSuperAdminLogin();
     return;
   }
 
+  const fmtWhen = (iso) =>
+    new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const rows = (keys || [])
+    .map((k) => {
+      const revoked = !!k.revoked_at;
+      return `
+        <div class="raffle-card" data-id="${k.id}">
+          <div class="top">
+            <h3>${escapeHtml(k.label)}</h3>
+            <span class="raffle-badge ${revoked ? "drawn" : "active"}">${revoked ? "revogada" : "ativa"}</span>
+          </div>
+          <div class="pix-code" style="margin:8px 0">${escapeHtml(k.admin_key)}</div>
+          <div style="font-size:0.74rem;color:var(--ink-soft)">
+            ${revoked ? `Revogada em ${fmtWhen(k.revoked_at)}` : `Criada em ${fmtWhen(k.created_at)}`}
+          </div>
+          ${!revoked ? `<div class="raffle-actions"><button type="button" class="btn-small-outline revoke-key">revogar</button></div>` : ""}
+        </div>
+      `;
+    })
+    .join("");
+
   app.innerHTML = `
     ${markHtml()}
     <div class="admin-header"><h1>Administrador</h1></div>
-    <div class="card" style="margin-bottom:14px">
-      <p style="font-size:0.85rem;color:var(--ink-soft);margin:0 0 8px">Chave atual do painel organizador (entregue ao casal em #admin)</p>
-      <div class="pix-code">${escapeHtml(key)}</div>
-      <button class="btn-copy" id="copy-organizer-key" style="margin-top:10px">Copiar chave</button>
+
+    <label>Nova chave de organizador</label>
+    <input type="text" id="new-key-label" placeholder="Ex: Casamento Maiara e Lucas" />
+    <button class="btn-primary" id="create-key-btn" style="margin-top:10px">Gerar chave</button>
+    <p id="create-key-msg" style="font-size:0.85rem;margin-top:8px;color:#9B3A3A"></p>
+
+    <div style="margin-top:28px">
+      ${rows || `<p style="color:var(--ink-soft)">Nenhuma chave criada ainda.</p>`}
     </div>
-    <button class="btn-primary" id="rotate-key-btn">Gerar nova chave</button>
-    <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:8px">Isso invalida a chave atual na hora -- quem já tiver ela perde o acesso. Use depois do casamento pra encerrar o acesso do casal.</p>
-    <p id="rotate-msg" style="font-size:0.85rem;margin-top:8px;color:#9B3A3A"></p>
+
+    <details style="margin-top:10px">
+      <summary style="font-size:0.82rem;color:var(--ink-soft);cursor:pointer">Trocar senha</summary>
+      <label>Senha atual</label>
+      <input type="password" id="cp-current" autocomplete="current-password" />
+      <label>Nova senha</label>
+      <input type="password" id="cp-new" autocomplete="new-password" />
+      <button class="btn-small-outline" id="cp-btn" style="margin-top:10px">Salvar nova senha</button>
+      <p id="cp-msg" style="font-size:0.82rem;margin-top:8px;color:#9B3A3A"></p>
+    </details>
+
     <button type="button" class="btn-ghost" id="superadmin-logout" style="margin-top:20px">Sair</button>
   `;
 
-  document.getElementById("copy-organizer-key").addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(key);
-      document.getElementById("copy-organizer-key").textContent = "Copiado!";
-    } catch {
-      // clipboard pode falhar em alguns navegadores -- a chave ja esta visivel pra copiar manualmente
-    }
-  });
-
-  document.getElementById("rotate-key-btn").addEventListener("click", async () => {
-    if (!window.confirm("Gerar uma nova chave? A chave atual vai parar de funcionar imediatamente.")) return;
-    const { error: rotErr } = await sb.rpc("superadmin_rotate_organizer_key", { p_super_key: superAdminKey });
-    if (rotErr) {
-      document.getElementById("rotate-msg").textContent = "Erro ao gerar nova chave. Tente de novo.";
+  document.getElementById("create-key-btn").addEventListener("click", async () => {
+    const label = document.getElementById("new-key-label").value.trim();
+    const { error: createErr } = await sb.rpc("superadmin_create_organizer_key", {
+      p_username: superAdminCreds.username,
+      p_password: superAdminCreds.password,
+      p_label: label,
+    });
+    if (createErr) {
+      document.getElementById("create-key-msg").textContent = "Erro ao criar chave. Tente de novo.";
       return;
     }
     renderSuperAdmin();
   });
 
+  app.querySelectorAll(".revoke-key").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest(".raffle-card").dataset.id;
+      if (!window.confirm("Revogar essa chave? Quem estiver usando ela perde o acesso imediatamente.")) return;
+      const { error: revErr } = await sb.rpc("superadmin_revoke_organizer_key", {
+        p_username: superAdminCreds.username,
+        p_password: superAdminCreds.password,
+        p_key_id: id,
+      });
+      if (revErr) { alert("Erro: " + revErr.message); return; }
+      renderSuperAdmin();
+    });
+  });
+
+  document.getElementById("cp-btn").addEventListener("click", async () => {
+    const current = document.getElementById("cp-current").value;
+    const next = document.getElementById("cp-new").value;
+    if (!current || !next) return;
+    const { error: cpErr } = await sb.rpc("superadmin_change_password", {
+      p_username: superAdminCreds.username,
+      p_password: current,
+      p_new_password: next,
+    });
+    if (cpErr) {
+      document.getElementById("cp-msg").textContent = cpErr.message || "Erro ao trocar senha.";
+      return;
+    }
+    superAdminCreds = { username: superAdminCreds.username, password: next };
+    sessionStorage.setItem("gravata_superadmin_creds", JSON.stringify(superAdminCreds));
+    document.getElementById("cp-msg").style.color = "#2E7D4F";
+    document.getElementById("cp-msg").textContent = "Senha alterada!";
+  });
+
   document.getElementById("superadmin-logout").addEventListener("click", () => {
-    superAdminKey = "";
-    sessionStorage.removeItem("gravata_superadmin_key");
+    superAdminCreds = null;
+    sessionStorage.removeItem("gravata_superadmin_creds");
     renderSuperAdmin();
   });
 }
