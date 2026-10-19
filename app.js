@@ -1225,8 +1225,27 @@ async function renderRaffleEditor(settings, raffles, id) {
 
     ${
       !isNew && reservations.length > 0
-        ? `<h2 class="grid-head" style="font-family:var(--display);font-style:italic;font-size:1.1rem;margin-top:24px">Quem já doou</h2>
-           <div>${reservations.map((r) => `<div class="reservation-row"><span>${r.status === "paid" ? "✅" : "⏳"} ${escapeHtml(r.guest_name)}</span><span>${money(Number(r.total_price))}</span></div>`).join("")}</div>`
+        ? (() => {
+            const numbersByReservation = {};
+            numbers.forEach((n) => {
+              if (!n.reservation_id) return;
+              (numbersByReservation[n.reservation_id] ||= []).push(n.number);
+            });
+            const rows = reservations
+              .map((r) => {
+                const nums = (numbersByReservation[r.id] || [])
+                  .sort((a, b) => a - b)
+                  .map((n) => String(n).padStart(2, "0"))
+                  .join(", ");
+                return `<div class="reservation-row">
+                  <div class="res-top"><span>${r.status === "paid" ? "✅" : "⏳"} ${escapeHtml(r.guest_name)}</span><span>${money(Number(r.total_price))}</span></div>
+                  ${nums ? `<div class="res-numbers">números: ${nums}</div>` : ""}
+                </div>`;
+              })
+              .join("");
+            return `<h2 class="grid-head" style="font-family:var(--display);font-style:italic;font-size:1.1rem;margin-top:24px">Quem já doou</h2>
+                    <div>${rows}</div>`;
+          })()
         : ""
     }
 
