@@ -26,6 +26,88 @@ function markHtml() {
 }
 
 // ---------------------------------------------------------------------------
+// Animacao de sorteio (numeros passando + confete) -- usada no painel do
+// organizador ao sortear um item. Pura CSS/JS, sem biblioteca externa.
+// ---------------------------------------------------------------------------
+function launchConfetti(container, count = 140) {
+  const colors = ["#7D2235", "#16284A", "#FAF7F1", "#E8B84B"];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("div");
+    el.className = "confetti-piece";
+    el.style.left = Math.random() * 100 + "%";
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.animationDuration = 2 + Math.random() * 1.6 + "s";
+    el.style.animationDelay = Math.random() * 0.35 + "s";
+    el.style.transform = `rotate(${Math.random() * 360}deg)`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 4200);
+  }
+}
+
+// itemLabel: nome do item sendo sorteado. candidatePool: numeros ainda
+// elegiveis pra esse sorteio (usados so pro efeito visual de "passando").
+// drawFn: funcao async que efetivamente sorteia e retorna o numero vencedor
+// (ou lanca erro). onDone: chamado depois que o convidado fecha a tela.
+function runDrawAnimation({ itemLabel, candidatePool, drawFn, resolveWinnerName, onDone }) {
+  const overlay = document.createElement("div");
+  overlay.className = "draw-overlay";
+  overlay.innerHTML = `
+    <div class="confetti-layer" id="draw-confetti"></div>
+    <div class="draw-stage">
+      <div class="draw-item-name">${escapeHtml(itemLabel)}</div>
+      <div class="draw-label" id="draw-label">sorteando...</div>
+      <div class="draw-number spinning" id="draw-number">00</div>
+      <div class="draw-winner-name" id="draw-winner-name"></div>
+      <div><button type="button" class="btn-primary" id="draw-close">continuar</button></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const numberEl = overlay.querySelector("#draw-number");
+  const labelEl = overlay.querySelector("#draw-label");
+  const winnerNameEl = overlay.querySelector("#draw-winner-name");
+  const closeBtn = overlay.querySelector("#draw-close");
+  const confettiLayer = overlay.querySelector("#draw-confetti");
+
+  const pool = candidatePool && candidatePool.length ? candidatePool : null;
+  const spinTimer = setInterval(() => {
+    const n = pool ? pool[Math.floor(Math.random() * pool.length)] : Math.floor(Math.random() * 100);
+    numberEl.textContent = String(n).padStart(2, "0");
+  }, 65);
+
+  const minSpin = new Promise((resolve) => setTimeout(resolve, 1900));
+
+  Promise.all([drawFn(), minSpin])
+    .then(([winnerNumber]) => {
+      clearInterval(spinTimer);
+      numberEl.classList.remove("spinning");
+      numberEl.classList.add("landed");
+      numberEl.textContent = String(winnerNumber).padStart(2, "0");
+      labelEl.textContent = "número sorteado";
+      launchConfetti(confettiLayer);
+
+      const guestName = resolveWinnerName ? resolveWinnerName(winnerNumber) : null;
+      const paddedNumber = String(winnerNumber).padStart(2, "0");
+      winnerNameEl.textContent = guestName ? `🎉 Número ${paddedNumber} — ${guestName}` : `🎉 Número ${paddedNumber} (sem nome identificado)`;
+      requestAnimationFrame(() => {
+        winnerNameEl.classList.add("show");
+        closeBtn.classList.add("show");
+      });
+    })
+    .catch((err) => {
+      clearInterval(spinTimer);
+      overlay.remove();
+      alert("Erro: " + (err?.message || err));
+      if (onDone) onDone(false);
+    });
+
+  closeBtn.addEventListener("click", () => {
+    overlay.remove();
+    if (onDone) onDone(true);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Roteamento
 // ---------------------------------------------------------------------------
 function route() {
@@ -1280,19 +1362,31 @@ async function renderRaffleEditor(settings, raffles, id) {
     });
 
     el.querySelectorAll(".it-draw").forEach((btn) => {
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         if (!confirm("Sortear esse item agora? Isso não pode ser desfeito.")) return;
         const i = Number(btn.closest(".item-view-row").dataset.i);
-        const { error } = await sb.rpc("admin_draw_item_winner", {
-          p_admin_key: adminKey,
-          p_raffle_id: raffle.id,
-          p_item_id: currentItems[i].id,
+        const alreadyWon = items.filter((it) => it.winner_number).map((it) => it.winner_number);
+        const candidatePool = numbers.filter((n) => n.reservation_id && !alreadyWon.includes(n.number)).map((n) => n.number);
+
+        runDrawAnimation({
+          itemLabel: currentItems[i].description || `Item ${i + 1}`,
+          candidatePool,
+          drawFn: async () => {
+            const { data, error } = await sb.rpc("admin_draw_item_winner", {
+              p_admin_key: adminKey,
+              p_raffle_id: raffle.id,
+              p_item_id: currentItems[i].id,
+            });
+            if (error) throw error;
+            return data;
+          },
+          resolveWinnerName: (winnerNumber) => {
+            const numberRow = numbers.find((n) => n.number === winnerNumber);
+            const res = numberRow ? reservations.find((r) => r.id === numberRow.reservation_id) : null;
+            return res ? res.guest_name : null;
+          },
+          onDone: () => renderAdmin(),
         });
-        if (error) {
-          alert("Erro: " + error.message);
-          return;
-        }
-        renderAdmin();
       });
     });
   }
