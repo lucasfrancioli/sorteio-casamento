@@ -1041,12 +1041,12 @@ async function renderAdmin() {
         const badgeText = r.status === "active" ? "ao vivo" : r.status === "drawn" ? "encerrado" : "agendado";
         const items = allItems.filter((i) => i.raffle_id === r.id).sort((a, b) => a.position - b.position);
         const titleLabel = items.map((i) => i.description).join(" · ") || "(sem itens)";
-        const itemsSummary = items
-          .map(
-            (i) =>
-              `<div style="font-size:0.78rem;color:var(--ink-soft);padding:2px 0">${escapeHtml(i.description)}${i.winner_number ? ` — número ${String(i.winner_number).padStart(2, "0")}` : ""}</div>`
-          )
-          .join("");
+        const winners = items.filter((i) => i.winner_number);
+        const itemsSummary = winners.length
+          ? winners
+              .map((i) => `<div class="raffle-winner-line">🏆 ${escapeHtml(i.description)} — número ${String(i.winner_number).padStart(2, "0")}</div>`)
+              .join("")
+          : `<div class="raffle-meta">${items.length} ${items.length === 1 ? "item" : "itens"}</div>`;
         return `
           <div class="raffle-card" data-id="${r.id}">
             <div class="top">
@@ -1057,6 +1057,7 @@ async function renderAdmin() {
             <div class="raffle-actions">
               <button type="button" class="btn-small-outline edit-raffle">editar</button>
               ${r.status === "draft" ? `<button type="button" class="btn-small-primary activate-raffle">ativar</button>` : ""}
+              ${r.status !== "active" ? `<button type="button" class="btn-small-danger delete-raffle">🗑 excluir</button>` : ""}
             </div>
           </div>
         `;
@@ -1073,6 +1074,15 @@ async function renderAdmin() {
       btn.addEventListener("click", async () => {
         const id = btn.closest(".raffle-card").dataset.id;
         const { error } = await sb.rpc("admin_set_active_raffle", { p_admin_key: adminKey, p_raffle_id: id });
+        if (error) { alert("Erro: " + error.message); return; }
+        renderAdmin();
+      });
+    });
+    listEl.querySelectorAll(".delete-raffle").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Excluir esse sorteio? Isso não pode ser desfeito.")) return;
+        const id = btn.closest(".raffle-card").dataset.id;
+        const { error } = await sb.rpc("admin_delete_raffle", { p_admin_key: adminKey, p_raffle_id: id });
         if (error) { alert("Erro: " + error.message); return; }
         renderAdmin();
       });
@@ -1169,34 +1179,84 @@ async function renderRaffleEditor(settings, raffles, id) {
     renderTierRows(currentTiers);
   });
 
-  let currentItems = items.length ? items.map((it) => ({ ...it })) : [{ id: null, description: "", image_url: null, winner_number: null }];
+  let currentItems = items.length
+    ? items.map((it) => ({ ...it, _editing: false }))
+    : [{ id: null, description: "", image_url: null, winner_number: null, _editing: true }];
+
+  function itemViewRowHtml(it, i, drawn, canDraw) {
+    return `
+      <div class="item-view-row" data-i="${i}">
+        <div class="item-view-media">${
+          it.image_url ? `<img src="${escapeHtml(it.image_url)}" />` : `<span class="no-photo">sem foto</span>`
+        }</div>
+        <div class="item-view-body">
+          <div class="item-view-top">
+            <strong>${escapeHtml(it.description || `Item ${i + 1}`)}</strong>
+            <span class="item-edit-status ${drawn ? "won" : ""}">${drawn ? `sorteado — número ${String(it.winner_number).padStart(2, "0")}` : "ainda não sorteado"}</span>
+          </div>
+          <div class="item-view-actions">
+            <button type="button" class="btn-edit-item it-edit">editar</button>
+            ${canDraw ? `<button type="button" class="btn-draw-item it-draw">sortear este item</button>` : ""}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function itemEditRowHtml(it, i, drawn) {
+    return `
+      <div class="item-edit-row" data-i="${i}">
+        <div class="item-edit-top">
+          <strong>Item ${i + 1}</strong>
+          <span class="item-edit-status ${drawn ? "won" : ""}">${drawn ? `sorteado — número ${String(it.winner_number).padStart(2, "0")}` : "ainda não sorteado"}</span>
+        </div>
+        <input type="text" class="it-desc" value="${escapeHtml(it.description || "")}" placeholder="ex: Gravata do noivo" />
+        <input type="file" class="it-image-file" accept="image/*" />
+        <div class="it-image-preview">${it.image_url ? `<img src="${escapeHtml(it.image_url)}" />` : ""}</div>
+        <div class="item-edit-actions">
+          ${it.description ? `<button type="button" class="btn-ghost it-done">concluir edição</button>` : ""}
+          ${!drawn ? `<button type="button" class="btn-ghost it-remove">remover item</button>` : ""}
+        </div>
+      </div>`;
+  }
 
   function renderItemRows(list) {
     const el = document.getElementById("item-rows");
     el.innerHTML = list
       .map((it, i) => {
         const drawn = Boolean(it.winner_number);
-        return `
-        <div class="item-edit-row" data-i="${i}">
-          <div class="item-edit-top">
-            <strong>Item ${i + 1}</strong>
-            <span class="item-edit-status ${drawn ? "won" : ""}">${drawn ? `sorteado — número ${String(it.winner_number).padStart(2, "0")}` : "ainda não sorteado"}</span>
-          </div>
-          <input type="text" class="it-desc" value="${escapeHtml(it.description || "")}" placeholder="ex: Gravata do noivo" />
-          <input type="file" class="it-image-file" accept="image/*" />
-          <div class="it-image-preview">${it.image_url ? `<img src="${escapeHtml(it.image_url)}" />` : ""}</div>
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-            ${!isNew && it.id && !drawn && raffle.status === "active" ? `<button type="button" class="btn-small-primary it-draw">sortear este item</button>` : ""}
-            ${!drawn ? `<button type="button" class="btn-ghost it-remove">remover item</button>` : ""}
-          </div>
-        </div>`;
+        const canDraw = !isNew && it.id && !drawn && raffle.status === "active";
+        return it._editing ? itemEditRowHtml(it, i, drawn) : itemViewRowHtml(it, i, drawn, canDraw);
       })
       .join("");
+
+    el.querySelectorAll(".it-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        currentItems[Number(btn.closest(".item-view-row").dataset.i)]._editing = true;
+        renderItemRows(currentItems);
+      });
+    });
+
+    el.querySelectorAll(".it-done").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.closest(".item-edit-row").dataset.i);
+        currentItems[i].description = el.querySelector(`.item-edit-row[data-i="${i}"] .it-desc`).value.trim();
+        if (!currentItems[i].description) return;
+        currentItems[i]._editing = false;
+        renderItemRows(currentItems);
+      });
+    });
+
+    el.querySelectorAll(".it-desc").forEach((input) => {
+      input.addEventListener("input", () => {
+        const i = Number(input.closest(".item-edit-row").dataset.i);
+        currentItems[i].description = input.value;
+      });
+    });
 
     el.querySelectorAll(".it-remove").forEach((btn) => {
       btn.addEventListener("click", () => {
         currentItems.splice(Number(btn.closest(".item-edit-row").dataset.i), 1);
-        if (currentItems.length === 0) currentItems.push({ id: null, description: "", image_url: null, winner_number: null });
+        if (currentItems.length === 0) currentItems.push({ id: null, description: "", image_url: null, winner_number: null, _editing: true });
         renderItemRows(currentItems);
       });
     });
@@ -1222,7 +1282,7 @@ async function renderRaffleEditor(settings, raffles, id) {
     el.querySelectorAll(".it-draw").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Sortear esse item agora? Isso não pode ser desfeito.")) return;
-        const i = Number(btn.closest(".item-edit-row").dataset.i);
+        const i = Number(btn.closest(".item-view-row").dataset.i);
         const { error } = await sb.rpc("admin_draw_item_winner", {
           p_admin_key: adminKey,
           p_raffle_id: raffle.id,
@@ -1240,7 +1300,7 @@ async function renderRaffleEditor(settings, raffles, id) {
   renderItemRows(currentItems);
 
   document.getElementById("add-item").addEventListener("click", () => {
-    currentItems.push({ id: null, description: "", image_url: null, winner_number: null });
+    currentItems.push({ id: null, description: "", image_url: null, winner_number: null, _editing: true });
     renderItemRows(currentItems);
   });
 
@@ -1250,16 +1310,12 @@ async function renderRaffleEditor(settings, raffles, id) {
   });
 
   document.getElementById("save-raffle").addEventListener("click", async () => {
-    const itemRows = document.querySelectorAll(".item-edit-row");
-    const itemsPayload = Array.from(itemRows)
-      .map((row) => {
-        const i = Number(row.dataset.i);
-        return {
-          id: currentItems[i].id || null,
-          description: row.querySelector(".it-desc").value.trim(),
-          image_url: currentItems[i].image_url || null,
-        };
-      })
+    const itemsPayload = currentItems
+      .map((it) => ({
+        id: it.id || null,
+        description: (it.description || "").trim(),
+        image_url: it.image_url || null,
+      }))
       .filter((it) => it.description);
 
     const rows = document.querySelectorAll(".tier-row");

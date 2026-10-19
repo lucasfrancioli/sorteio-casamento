@@ -385,12 +385,29 @@
   .raffle-actions button { padding: 8px 14px; font-size: 0.82rem; border-radius: 999px; }
   .btn-small-primary { background: var(--ink); color: var(--paper); font-weight: 600; }
   .btn-small-outline { background: transparent; color: var(--ink); border: 1px solid var(--line) !important; }
+  .btn-small-danger { background: transparent; color: var(--boutonniere); border: 1px solid var(--boutonniere) !important; }
+  .btn-small-danger:active { background: rgba(125, 34, 53, 0.08); }
+  .raffle-card .raffle-meta { font-size: 0.78rem; color: var(--ink-soft); margin: 2px 0 0; }
+  .raffle-card .raffle-winner-line { font-size: 0.78rem; color: var(--boutonniere); font-weight: 600; padding: 2px 0; }
 
   .item-edit-row { border: 1px solid var(--line); padding: 12px; margin-bottom: 10px; border-radius: 10px; background: #FFFFFF; }
   .item-edit-row .item-edit-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .item-edit-row .item-edit-status { font-size: 0.76rem; color: var(--ink-soft); }
   .item-edit-row .item-edit-status.won { color: var(--boutonniere); font-weight: 600; }
   .item-edit-row img { max-width: 100%; max-height: 120px; margin-top: 6px; border-radius: 8px; }
+  .item-edit-row .item-edit-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+  .item-view-row { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); padding: 12px; margin-bottom: 10px; border-radius: 10px; background: #FFFFFF; }
+  .item-view-media { flex: 0 0 72px; width: 72px; height: 72px; border-radius: 8px; overflow: hidden; background: var(--paper-dim); display: flex; align-items: center; justify-content: center; }
+  .item-view-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .item-view-media .no-photo { font-size: 0.6rem; color: var(--ink-soft); text-align: center; padding: 4px; line-height: 1.3; }
+  .item-view-body { flex: 1; min-width: 0; }
+  .item-view-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .item-view-top strong { font-family: var(--display); font-size: 1rem; color: var(--ink); }
+  .item-view-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .btn-edit-item { padding: 7px 14px; font-size: 0.78rem; border-radius: 999px; background: transparent; color: var(--ink); border: 1px solid var(--line) !important; }
+  .btn-draw-item { padding: 7px 16px; font-size: 0.8rem; font-weight: 600; border-radius: 999px; background: var(--boutonniere); color: var(--paper); border: 1px solid var(--boutonniere) !important; }
+  .btn-draw-item:active { background: #5E1A29; }
 
   .winner-banner { background: var(--ink); color: var(--paper); padding: 22px 18px; text-align: center; margin-top: 10px; border-radius: 14px; position: relative; overflow: hidden; }
   .winner-banner::before {
