@@ -1284,9 +1284,13 @@ async function renderRaffleEditor(settings, raffles, id) {
     ? items.map((it) => ({ ...it, _editing: false }))
     : [{ id: null, description: "", image_url: null, winner_number: null, _editing: true }];
 
-  function itemViewRowHtml(it, i, drawn, canDraw) {
+  function itemViewRowHtml(it, i, drawn, canDraw, isFirst, isLast) {
     return `
       <div class="item-view-row" data-i="${i}">
+        <div class="item-view-reorder">
+          <button type="button" class="btn-reorder it-move-up" ${isFirst ? "disabled" : ""} aria-label="mover para cima">↑</button>
+          <button type="button" class="btn-reorder it-move-down" ${isLast ? "disabled" : ""} aria-label="mover para baixo">↓</button>
+        </div>
         <div class="item-view-media">${
           it.image_url ? `<img src="${escapeHtml(it.image_url)}" />` : `<span class="no-photo">sem foto</span>`
         }</div>
@@ -1326,9 +1330,27 @@ async function renderRaffleEditor(settings, raffles, id) {
       .map((it, i) => {
         const drawn = Boolean(it.winner_number);
         const canDraw = !isNew && it.id && !drawn && raffle.status === "active";
-        return it._editing ? itemEditRowHtml(it, i, drawn) : itemViewRowHtml(it, i, drawn, canDraw);
+        return it._editing ? itemEditRowHtml(it, i, drawn) : itemViewRowHtml(it, i, drawn, canDraw, i === 0, i === list.length - 1);
       })
       .join("");
+
+    el.querySelectorAll(".it-move-up").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.closest(".item-view-row").dataset.i);
+        if (i <= 0) return;
+        [currentItems[i - 1], currentItems[i]] = [currentItems[i], currentItems[i - 1]];
+        renderItemRows(currentItems);
+      });
+    });
+
+    el.querySelectorAll(".it-move-down").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.closest(".item-view-row").dataset.i);
+        if (i >= currentItems.length - 1) return;
+        [currentItems[i + 1], currentItems[i]] = [currentItems[i], currentItems[i + 1]];
+        renderItemRows(currentItems);
+      });
+    });
 
     el.querySelectorAll(".it-edit").forEach((btn) => {
       btn.addEventListener("click", () => {

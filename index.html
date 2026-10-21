@@ -400,6 +400,10 @@
   .item-edit-row .item-edit-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
   .item-view-row { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); padding: 12px; margin-bottom: 10px; border-radius: 10px; background: #FFFFFF; }
+  .item-view-reorder { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; }
+  .btn-reorder { width: 28px; height: 24px; padding: 0; border-radius: 6px; border: 1px solid var(--line) !important; background: #FFFFFF; color: var(--ink); font-size: 0.8rem; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .btn-reorder:disabled { opacity: 0.3; cursor: default; }
+  .btn-reorder:active:not(:disabled) { background: var(--paper-dim); }
   .item-view-media { flex: 0 0 72px; width: 72px; height: 72px; border-radius: 8px; overflow: hidden; background: var(--paper-dim); display: flex; align-items: center; justify-content: center; }
   .item-view-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .item-view-media .no-photo { font-size: 0.6rem; color: var(--ink-soft); text-align: center; padding: 4px; line-height: 1.3; }
